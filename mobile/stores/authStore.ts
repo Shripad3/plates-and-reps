@@ -1,0 +1,25 @@
+import { create } from "zustand";
+import type { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { useOfflineStore } from "@/stores/offlineStore";
+
+interface AuthState {
+  session: Session | null;
+  user: User | null;
+  isLoading: boolean;
+  setSession: (session: Session | null) => void;
+  signOut: () => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  session: null,
+  user: null,
+  isLoading: true,
+  setSession: (session) =>
+    set({ session, user: session?.user ?? null, isLoading: false }),
+  signOut: async () => {
+    await supabase.auth.signOut();
+    useOfflineStore.getState().clearPendingQueue();
+    set({ session: null, user: null });
+  },
+}));

@@ -1,0 +1,5 @@
+export const FREE_TIER = {
+  AI_CHAT_DAILY_LIMIT: 10,
+  PHOTO_ANALYSIS_DAILY_LIMIT: 3,
+  VOICE_LOG_DAILY_LIMIT: 5,
+} as const;

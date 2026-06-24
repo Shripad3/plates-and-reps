@@ -1,0 +1,119 @@
+import { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Link, router } from "expo-router";
+import * as Linking from "expo-linking";
+import { supabase } from "@/lib/supabase";
+import { AppTextInput } from "@/components/AppTextInput";
+import { Button } from "@/components/ui/Button";
+import { ScreenHeader } from "@/components/ScreenHeader";
+
+export default function SignupScreen() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSignup() {
+    if (!email || !password || !displayName) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+    if (password.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters.");
+      return;
+    }
+
+    setIsLoading(true);
+    const redirectTo = Linking.createURL("/auth/callback");
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: displayName },
+        emailRedirectTo: redirectTo,
+      },
+    });
+    setIsLoading(false);
+
+    if (error) {
+      Alert.alert("Signup failed", error.message);
+      return;
+    }
+
+    if (data.session) {
+      router.replace("/(auth)/onboarding");
+    } else {
+      Alert.alert(
+        "Check your email",
+        "We sent a confirmation link. Click it to activate your account."
+      );
+    }
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-surface">
+      <ScreenHeader title="Create account" subtitle="Set up your profile" showBack={false} />
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        contentContainerClassName="flex-grow px-6 pb-12"
+      >
+        <View className="gap-4 mt-2">
+          <View>
+            <Text className="text-slate-400 text-sm mb-1.5">Name</Text>
+            <AppTextInput placeholder="Your name" value={displayName} onChangeText={setDisplayName} />
+          </View>
+
+          <View>
+            <Text className="text-slate-400 text-sm mb-1.5">Email</Text>
+            <AppTextInput
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+          </View>
+
+          <View>
+            <Text className="text-slate-400 text-sm mb-1.5">Password</Text>
+            <AppTextInput
+              placeholder="Min. 8 characters"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
+
+          <Button
+            label={isLoading ? "Creating account…" : "Create account"}
+            onPress={handleSignup}
+            loading={isLoading}
+            fullWidth
+            className="mt-2"
+          />
+        </View>
+
+        <View className="mt-8 items-center">
+          <Link href="/(auth)/login" asChild>
+            <TouchableOpacity>
+              <Text className="text-slate-400">
+                Already have an account?{" "}
+                <Text className="text-brand-400 font-semibold">Sign in</Text>
+              </Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}

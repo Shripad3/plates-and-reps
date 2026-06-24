@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "Plates & Reps",
+    "slug": "plates-and-reps",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "com.shripad.platesandreps",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0F14"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.shripad.platesandreps",
+      "infoPlist": {
+        "CFBundleDisplayName": "Plates & Reps",
+        "NSCameraUsageDescription": "Used to scan food barcodes and take photos for AI food logging.",
+        "NSMicrophoneUsageDescription": "Used to log food by voice.",
+        "NSPhotoLibraryUsageDescription": "Used when you choose a photo to log food."
+      }
+    },
+    "android": {
+      "package": "com.shripad.platesandreps",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0B0F14"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Used to scan food barcodes and take photos for AI food logging."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Used to log food by voice."
+        }
+      ],
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
