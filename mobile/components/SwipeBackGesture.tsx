@@ -9,10 +9,18 @@ const SWIPE_THRESHOLD = 72;
 
 type SwipeBackGestureProps = {
   children: ReactNode;
+  /**
+   * Overrides the default "smart back" navigation (useAppBack). Use this
+   * for screens where a plain navigate-away would leave native modal
+   * presentation state out of sync (e.g. a fullScreenModal screen, where
+   * only an explicit dismiss/back() correctly clears the presented modal).
+   */
+  onSwipeBack?: () => void;
 };
 
-export function SwipeBackGesture({ children }: SwipeBackGestureProps) {
-  const handleSwipeBack = useAppBack();
+export function SwipeBackGesture({ children, onSwipeBack }: SwipeBackGestureProps) {
+  const appBack = useAppBack();
+  const handleSwipeBack = onSwipeBack ?? appBack;
   const startedFromEdgeRef = useRef(false);
 
   const gesture = useMemo(

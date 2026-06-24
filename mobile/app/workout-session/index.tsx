@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useWorkoutStore } from "@/stores/workoutStore";
 import {
@@ -116,6 +116,9 @@ export default function WorkoutSessionScreen() {
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const initializedRef = useRef(false);
+  const finalizedRef = useRef(false);
+  const deleteSessionRef = useRef(deleteSession.mutate);
+  deleteSessionRef.current = deleteSession.mutate;
   const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { keyboardHeight } = useKeyboardInset(!showExercisePicker);
@@ -189,9 +192,41 @@ export default function WorkoutSessionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId, templates, templatesLoading]);
 
+  // Discard the session if the screen is left any way other than
+  // explicit Finish/Discard (e.g. swipe-back, hardware back button),
+  // so abandoned sessions don't linger as empty "Quick Workout" entries.
+  useEffect(() => {
+    return () => {
+      if (finalizedRef.current) return;
+      const session = useWorkoutStore.getState().activeSession;
+      if (session && !session.id.startsWith("local_")) {
+        deleteSessionRef.current(session.id);
+      }
+      useWorkoutStore.getState().endSession();
+    };
+  }, []);
+
   function handleFinish() {
     if (!activeSession || !startedAt) return;
     setShowFinishModal(true);
+  }
+
+  function confirmDiscard() {
+    Alert.alert("Discard Workout?", "Your session will not be saved.", [
+      { text: "Keep Going", style: "cancel" },
+      {
+        text: "Discard",
+        style: "destructive",
+        onPress: async () => {
+          finalizedRef.current = true;
+          if (activeSession && !activeSession.id.startsWith("local_")) {
+            await deleteSession.mutateAsync(activeSession.id);
+          }
+          endSession();
+          router.back();
+        },
+      },
+    ]);
   }
 
   async function confirmFinish(shareToFeed: boolean) {
@@ -264,6 +299,7 @@ export default function WorkoutSessionScreen() {
         }
       }
 
+      finalizedRef.current = true;
       setShowFinishModal(false);
       endSession();
       router.back();
@@ -304,36 +340,24 @@ export default function WorkoutSessionScreen() {
 
   if (isInitializing) {
     return (
-      <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-        <ActivityIndicator size="large" color={colors.brand[500]} />
-        <Text className="text-slate-400 mt-3">Starting workout…</Text>
-      </SafeAreaView>
+      <SafeAreaProvider>
+        <SafeAreaView className="flex-1 bg-surface items-center justify-center">
+          <ActivityIndicator size="large" color={colors.brand[500]} />
+          <Text className="text-slate-400 mt-3">Starting workout…</Text>
+        </SafeAreaView>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <SwipeBackGesture>
+    <SafeAreaProvider>
+    <SwipeBackGesture onSwipeBack={confirmDiscard}>
     <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
       {/* Header */}
       <View className="px-5 pt-4 pb-3 flex-row items-center justify-between">
         <TouchableOpacity
           className="bg-surface-elevated rounded-lg px-3 py-2"
-          onPress={() => {
-            Alert.alert("Discard Workout?", "Your session will not be saved.", [
-              { text: "Keep Going", style: "cancel" },
-              {
-                text: "Discard",
-                style: "destructive",
-                onPress: async () => {
-                  if (activeSession && !activeSession.id.startsWith("local_")) {
-                    await deleteSession.mutateAsync(activeSession.id);
-                  }
-                  endSession();
-                  router.back();
-                },
-              },
-            ]);
-          }}
+          onPress={confirmDiscard}
         >
           <Text className="text-slate-400 text-sm">Cancel</Text>
         </TouchableOpacity>
@@ -441,6 +465,7 @@ export default function WorkoutSessionScreen() {
       />
     </SafeAreaView>
     </SwipeBackGesture>
+    </SafeAreaProvider>
   );
 }
 
