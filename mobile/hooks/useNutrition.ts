@@ -56,6 +56,7 @@ export function useLogFood() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["nutrition", variables.date] });
+      queryClient.invalidateQueries({ queryKey: ["streaks"] });
     },
   });
 }
@@ -74,6 +75,28 @@ export function useDeleteNutritionLog() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["nutrition", variables.date] });
+    },
+  });
+}
+
+export function useUpdateNutritionLog() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      date,
+      updates,
+    }: {
+      id: string;
+      date: string;
+      updates: Parameters<typeof api.updateNutritionLog>[1];
+    }) => api.updateNutritionLog(id, updates),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["nutrition", variables.date] });
+      if (variables.updates.date && variables.updates.date !== variables.date) {
+        queryClient.invalidateQueries({ queryKey: ["nutrition", variables.updates.date] });
+      }
     },
   });
 }

@@ -32,7 +32,7 @@ import {
   removeFollower,
 } from "@/lib/api";
 import { REACTION_TYPES } from "@/constants";
-import type { ActivityFeedItem, UserProfile, SocialConnection } from "@/types";
+import type { ActivityFeedItem, PublicProfile, SocialConnection } from "@/types";
 
 const ACTIVITY_LABELS: Record<string, string> = {
   workout_completed: "completed a workout",
@@ -59,7 +59,7 @@ function UserCard({
   profile,
   action,
 }: {
-  profile: UserProfile;
+  profile: PublicProfile;
   action?: ReactNode;
 }) {
   return (
@@ -267,7 +267,7 @@ function PeopleTab() {
     { id: "requests", label: "Requests", badge: requests.length },
   ];
 
-  function renderSearchAction(profile: UserProfile) {
+  function renderSearchAction(profile: PublicProfile) {
     const outgoing = outgoingByUser.get(profile.id);
     if (outgoing?.status === "accepted") {
       return (

@@ -3,7 +3,7 @@ import { FREE_TIER } from "./freeTier.ts";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAdmin = any;
 
-export type AiFeature = "ai_chat" | "photo_analysis" | "voice_log";
+export type AiFeature = "ai_chat" | "photo_analysis" | "voice_log" | "food_search" | "rc_sync";
 
 export async function isPremiumUser(
   supabase: SupabaseAdmin,
@@ -78,6 +78,30 @@ export async function assertVoiceLogAllowed(
   const used = await countAiUsageToday(supabase, userId, "voice_log");
   if (used >= FREE_TIER.VOICE_LOG_DAILY_LIMIT) {
     return `Daily voice log limit reached (${FREE_TIER.VOICE_LOG_DAILY_LIMIT}/day on free plan). Upgrade to Premium for unlimited AI logging.`;
+  }
+  return null;
+}
+
+export async function assertSearchAllowed(
+  supabase: SupabaseAdmin,
+  userId: string
+): Promise<string | null> {
+  if (await isPremiumUser(supabase, userId)) return null;
+  const used = await countAiUsageToday(supabase, userId, "food_search");
+  if (used >= FREE_TIER.FOOD_SEARCH_DAILY_LIMIT) {
+    return `Daily food search limit reached (${FREE_TIER.FOOD_SEARCH_DAILY_LIMIT}/day on free plan). Upgrade to Premium for unlimited searches.`;
+  }
+  return null;
+}
+
+export async function assertRcSyncAllowed(
+  supabase: SupabaseAdmin,
+  userId: string
+): Promise<string | null> {
+  if (await isPremiumUser(supabase, userId)) return null;
+  const used = await countAiUsageToday(supabase, userId, "rc_sync");
+  if (used >= FREE_TIER.RC_SYNC_DAILY_LIMIT) {
+    return `Subscription sync limit reached (${FREE_TIER.RC_SYNC_DAILY_LIMIT}/day). Try again tomorrow.`;
   }
   return null;
 }

@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { assertRcSyncAllowed, recordAiUsage } from "../_shared/usageLimits.ts";
+import { respond429 } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -70,6 +72,11 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  const limitError = await assertRcSyncAllowed(admin, user.id);
+  if (limitError) return respond429(limitError);
+  await recordAiUsage(admin, user.id, "rc_sync");
+
   try {
     const rcRes = await fetch(
       `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(user.id)}`,
@@ -93,7 +100,6 @@ Deno.serve(async (req: Request) => {
       isEntitlementActive(entitlement.expires_date, entitlement.grace_period_expires_date);
     const premiumUntil = entitlement?.expires_date ?? null;
 
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { error } = await admin.rpc("set_user_premium", {
       p_user_id: user.id,
       p_is_premium: isPremium,

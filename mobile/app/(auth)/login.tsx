@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { AppTextInput } from "@/components/AppTextInput";
 import { AppLogo } from "@/components/AppLogo";
 import { Button } from "@/components/ui/Button";
+import { SocialAuthButtons } from "@/components/SocialAuthButtons";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -20,9 +21,15 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   async function handleLogin() {
     if (!email || !password) {
       Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+    if (!EMAIL_REGEX.test(email.trim())) {
+      Alert.alert("Error", "Please enter a valid email address.");
       return;
     }
     setIsLoading(true);
@@ -111,15 +118,19 @@ export default function LoginScreen() {
           />
         </View>
 
-        <View className="mt-8 items-center gap-3">
-          <Link href="/(auth)/signup" asChild>
-            <TouchableOpacity>
-              <Text className="text-slate-400">
-                New here?{" "}
-                <Text className="text-brand-400 font-semibold">Create account</Text>
-              </Text>
-            </TouchableOpacity>
-          </Link>
+        <View className="mt-8 gap-6">
+          <SocialAuthButtons />
+
+          <View className="items-center">
+            <Link href="/(auth)/signup" asChild>
+              <TouchableOpacity>
+                <Text className="text-slate-400">
+                  New here?{" "}
+                  <Text className="text-brand-400 font-semibold">Create account</Text>
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -16,11 +16,13 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.shripad.platesandreps",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "CFBundleDisplayName": "Plates & Reps",
         "NSCameraUsageDescription": "Used to scan food barcodes and take photos for AI food logging.",
         "NSMicrophoneUsageDescription": "Used to log food by voice.",
-        "NSPhotoLibraryUsageDescription": "Used when you choose a photo to log food."
+        "NSPhotoLibraryUsageDescription": "Used when you choose a photo to log food.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -33,7 +35,10 @@
         "CAMERA",
         "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -55,10 +60,18 @@
           "microphonePermission": "Used to log food by voice."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "900e75ed-aab8-43ac-a68e-121db7681568"
+      }
     }
   }
 }

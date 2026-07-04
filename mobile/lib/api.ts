@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import type {
   UserProfile,
+  PublicProfile,
   UserGoal,
   NutritionLog,
   Food,
@@ -375,6 +376,30 @@ export async function deleteNutritionLog(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateNutritionLog(
+  id: string,
+  updates: Partial<
+    Pick<
+      NutritionLog,
+      "meal_type" | "date" | "servings" | "calories" | "protein_g" | "carbs_g" | "fat_g" | "food_name" | "notes"
+    >
+  >
+): Promise<NutritionLog> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase
+    .from("nutrition_logs")
+    .update(updates)
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("*, food:foods(*)")
+    .single();
+
+  if (error) throw error;
+  return data as NutritionLog;
+}
+
 export async function searchFoods(query: string): Promise<Food[]> {
   const q = query.trim();
   if (q.length < 2) return [];
@@ -696,6 +721,17 @@ export async function deleteWorkoutSession(sessionId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteWorkoutSessions(sessionIds: string[]): Promise<void> {
+  if (sessionIds.length === 0) return;
+
+  const { error } = await supabase
+    .from("workout_sessions")
+    .delete()
+    .in("id", sessionIds);
+
+  if (error) throw error;
+}
+
 export async function logWorkoutSet(
   set: Omit<WorkoutSet, "id">
 ): Promise<WorkoutSet> {
@@ -843,7 +879,7 @@ export async function updateBodyMetric(
 
 // ─── Social ─────────────────────────────────────────────────────────────────
 
-export async function searchUsers(query: string): Promise<UserProfile[]> {
+export async function searchUsers(query: string): Promise<PublicProfile[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -851,14 +887,14 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
   if (!safe) return [];
 
   const { data, error } = await supabase
-    .from("user_profiles")
+    .from("public_profiles")
     .select("*")
     .or(`username.ilike.%${safe}%,display_name.ilike.%${safe}%`)
     .neq("id", user.id)
     .limit(20);
 
   if (error) throw error;
-  return (data ?? []) as UserProfile[];
+  return (data ?? []) as PublicProfile[];
 }
 
 export async function getFollowing(): Promise<SocialConnection[]> {
@@ -867,7 +903,7 @@ export async function getFollowing(): Promise<SocialConnection[]> {
 
   const { data, error } = await supabase
     .from("social_connections")
-    .select("*, profile:user_profiles!social_connections_following_id_fkey(id, username, display_name, avatar_url)")
+    .select("*, profile:public_profiles!social_connections_following_id_fkey(id, username, display_name, avatar_url)")
     .eq("follower_id", user.id)
     .neq("status", "declined")
     .order("created_at", { ascending: false });
@@ -882,7 +918,7 @@ export async function getFollowers(): Promise<SocialConnection[]> {
 
   const { data, error } = await supabase
     .from("social_connections")
-    .select("*, profile:user_profiles!social_connections_follower_id_fkey(id, username, display_name, avatar_url)")
+    .select("*, profile:public_profiles!social_connections_follower_id_fkey(id, username, display_name, avatar_url)")
     .eq("following_id", user.id)
     .eq("status", "accepted")
     .order("created_at", { ascending: false });
@@ -897,7 +933,7 @@ export async function getFollowRequests(): Promise<SocialConnection[]> {
 
   const { data, error } = await supabase
     .from("social_connections")
-    .select("*, profile:user_profiles!social_connections_follower_id_fkey(id, username, display_name, avatar_url)")
+    .select("*, profile:public_profiles!social_connections_follower_id_fkey(id, username, display_name, avatar_url)")
     .eq("following_id", user.id)
     .eq("status", "pending")
     .order("created_at", { ascending: false });
@@ -906,7 +942,7 @@ export async function getFollowRequests(): Promise<SocialConnection[]> {
   return (data ?? []) as SocialConnection[];
 }
 
-export async function getFriends(): Promise<UserProfile[]> {
+export async function getFriends(): Promise<PublicProfile[]> {
   const [following, followers] = await Promise.all([getFollowing(), getFollowers()]);
   const acceptedFollowing = new Set(
     following.filter((c) => c.status === "accepted").map((c) => c.following_id)
@@ -914,7 +950,7 @@ export async function getFriends(): Promise<UserProfile[]> {
   return followers
     .filter((c) => acceptedFollowing.has(c.follower_id))
     .map((c) => c.profile)
-    .filter(Boolean) as UserProfile[];
+    .filter(Boolean) as PublicProfile[];
 }
 
 export async function followUser(targetUserId: string): Promise<void> {
@@ -994,9 +1030,9 @@ export async function getFeed(page = 0): Promise<ActivityFeedItem[]> {
     .from("activity_feed")
     .select(`
       *,
-      profile:user_profiles!activity_feed_user_id_fkey(id, username, display_name, avatar_url),
+      profile:public_profiles!activity_feed_user_id_fkey(id, username, display_name, avatar_url),
       reactions:feed_reactions(id, reaction_type, user_id),
-      comments:feed_comments(id, content, created_at, user_id, profile:user_profiles(id, username, display_name, avatar_url))
+      comments:feed_comments(id, content, created_at, user_id, profile:public_profiles(id, username, display_name, avatar_url))
     `)
     .order("created_at", { ascending: false })
     .range(page * 20, page * 20 + 19);

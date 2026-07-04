@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import {
   useNutritionLogs,
   useDeleteNutritionLog,
+  useUpdateNutritionLog,
   useDaySummary,
   useLogWater,
   useLogFood,
@@ -22,21 +23,25 @@ import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { SwipeToDeleteRow } from "@/components/SwipeToDeleteRow";
 import { isPendingLogId } from "@/lib/offlineNutrition";
 import { AiFoodLogActions } from "@/components/AiFoodLogActions";
+import { EditNutritionLogModal } from "@/components/EditNutritionLogModal";
 import { MEAL_COLORS } from "@/lib/mealColors";
 import { MealDot } from "@/components/ui/IconButton";
 import { Card } from "@/components/ui/Card";
 import { colors } from "@/lib/theme";
+import type { NutritionLog } from "@/types";
 
 function MealSection({
   mealType,
   logs,
   onDelete,
   onAdd,
+  onEdit,
 }: {
   mealType: MealType;
   logs: ReturnType<typeof useNutritionLogs>["data"];
   onDelete: (id: string) => void;
   onAdd: (mealType: MealType) => void;
+  onEdit: (log: NutritionLog) => void;
 }) {
   const items = (logs ?? []).filter((l) => l.meal_type === mealType);
   const mealCalories = items.reduce((sum, l) => sum + l.calories, 0);
@@ -61,13 +66,19 @@ function MealSection({
 
       {items.map((log) => {
         const name = log.food_name ?? log.food?.name ?? "Unknown food";
+        const pending = isPendingLogId(log.id);
         return (
           <SwipeToDeleteRow key={log.id} title={name} onDelete={() => onDelete(log.id)}>
-            <View className="bg-surface-card border border-surface-border rounded-xl px-4 py-3 flex-row items-center justify-between">
+            <TouchableOpacity
+              activeOpacity={pending ? 1 : 0.7}
+              disabled={pending}
+              onPress={() => onEdit(log)}
+              className="bg-surface-card border border-surface-border rounded-xl px-4 py-3 flex-row items-center justify-between"
+            >
               <View className="flex-1">
                 <View className="flex-row items-center gap-2">
                   <Text className="text-white text-sm font-medium">{name}</Text>
-                  {isPendingLogId(log.id) ? (
+                  {pending ? (
                     <Text className="text-amber-400 text-[10px] font-semibold">SYNCING</Text>
                   ) : null}
                 </View>
@@ -77,7 +88,7 @@ function MealSection({
                 </Text>
               </View>
               <Text className="text-white font-semibold ml-3">{Math.round(log.calories)}</Text>
-            </View>
+            </TouchableOpacity>
           </SwipeToDeleteRow>
         );
       })}
@@ -106,7 +117,9 @@ export default function NutritionScreen() {
   const { data: recentFoods = [] } = useRecentFoods();
   const logFood = useLogFood();
   const deleteLog = useDeleteNutritionLog();
+  const updateLog = useUpdateNutritionLog();
   const logWater = useLogWater();
+  const [editingLog, setEditingLog] = useState<NutritionLog | null>(null);
   const { isPremium, profile } = usePremium();
   const { calories, protein_g, carbs_g, fat_g, water_ml } = useDaySummary(selectedDate);
   const historyCutoff = historyCutoffDate(profile);
@@ -133,6 +146,23 @@ export default function NutritionScreen() {
 
   function handleDelete(id: string) {
     deleteLog.mutate({ id, date: selectedDate });
+  }
+
+  function handleSaveEdit(updates: {
+    food_name: string;
+    meal_type: MealType;
+    servings: number;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    notes: string | null;
+  }) {
+    if (!editingLog) return;
+    updateLog.mutate(
+      { id: editingLog.id, date: selectedDate, updates },
+      { onSuccess: () => setEditingLog(null) }
+    );
   }
 
   return (
@@ -187,7 +217,20 @@ export default function NutritionScreen() {
                 {Math.round(water_ml / 100) / 10}L water
               </Text>
             </View>
-            <View className="flex-row gap-2">
+            <View className="flex-row items-center gap-2">
+              <TouchableOpacity
+                className="bg-surface-elevated rounded-lg p-1.5"
+                disabled={water_ml <= 0}
+                onPress={() =>
+                  logWater.mutate({ date: selectedDate, amount_ml: -Math.min(250, water_ml) })
+                }
+              >
+                <Ionicons
+                  name="remove"
+                  size={16}
+                  color={water_ml <= 0 ? colors.text.muted : colors.text.secondary}
+                />
+              </TouchableOpacity>
               {[250, 500].map((ml) => (
                 <TouchableOpacity
                   key={ml}
@@ -244,11 +287,19 @@ export default function NutritionScreen() {
             logs={logs}
             onDelete={handleDelete}
             onAdd={handleAddFood}
+            onEdit={setEditingLog}
           />
         ))}
 
         <View className="h-8" />
       </ScrollView>
+
+      <EditNutritionLogModal
+        log={editingLog}
+        saving={updateLog.isPending}
+        onClose={() => setEditingLog(null)}
+        onSave={handleSaveEdit}
+      />
     </TabSafeArea>
   );
 }

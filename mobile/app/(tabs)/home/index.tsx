@@ -23,6 +23,7 @@ import { Card, Section, SectionTitle } from "@/components/ui/Card";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { IconButton } from "@/components/ui/IconButton";
 import { CoachHeaderButton } from "@/components/CoachHeaderButton";
+import { QuickWinCard } from "@/components/QuickWinCard";
 
 const QUICK_ACTIONS = [
   { label: "Food", icon: "restaurant-outline" as const, href: "/(tabs)/nutrition" },
@@ -153,6 +154,10 @@ export default function HomeScreen() {
             </View>
           </Card>
         </Section>
+
+        {!isLoading && loggingStreak === 0 && logs.length === 0 && (
+          <QuickWinCard />
+        )}
 
         <Section className="mt-6">
           <SectionTitle>Quick log</SectionTitle>

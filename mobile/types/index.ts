@@ -16,6 +16,16 @@ export interface UserProfile {
   created_at: string;
 }
 
+// Safe, public-facing subset of UserProfile (backed by the public_profiles
+// view) — used anywhere we look up another user, since RLS restricts the
+// full user_profiles table to the owning user only.
+export interface PublicProfile {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
 export interface UserGoal {
   id: string;
   user_id: string;
@@ -186,7 +196,7 @@ export interface SocialConnection {
   connection_type: "follow" | "accountability_partner";
   status: SocialConnectionStatus;
   created_at: string;
-  profile?: UserProfile;
+  profile?: PublicProfile;
 }
 
 export interface ActivityFeedItem {
@@ -197,7 +207,7 @@ export interface ActivityFeedItem {
   metadata: Record<string, unknown>;
   visibility: "friends" | "public" | "private";
   created_at: string;
-  profile?: UserProfile;
+  profile?: PublicProfile;
   reactions?: FeedReaction[];
   comments?: FeedComment[];
   reaction_count?: number;
@@ -210,7 +220,7 @@ export interface FeedReaction {
   feed_item_id: string;
   user_id: string;
   reaction_type: string;
-  profile?: UserProfile;
+  profile?: PublicProfile;
 }
 
 export interface FeedComment {
@@ -219,7 +229,7 @@ export interface FeedComment {
   user_id: string;
   content: string;
   created_at: string;
-  profile?: UserProfile;
+  profile?: PublicProfile;
 }
 
 export interface Challenge {

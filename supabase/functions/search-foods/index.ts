@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { assertSearchAllowed, recordAiUsage } from "../_shared/usageLimits.ts";
+import { respond429 } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -234,6 +236,10 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const limitError = await assertSearchAllowed(service, authData.user.id);
+    if (limitError) return respond429(limitError);
+    await recordAiUsage(service, authData.user.id, "food_search");
 
     const body = await req.json().catch(() => ({}));
     const query = String(body?.query ?? "").trim();

@@ -106,6 +106,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Reject files larger than Groq's 25MB limit before uploading
+    const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+    if (audioFile.size > MAX_AUDIO_BYTES) {
+      return new Response(JSON.stringify({ error: "Audio file too large (max 25MB)" }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const form = new FormData();
     form.append("model", GROQ_AUDIO_MODEL);
     form.append("file", audioFile, audioFile.name || "voice.m4a");

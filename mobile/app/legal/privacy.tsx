@@ -31,6 +31,12 @@ export default function PrivacyPolicyScreen() {
           purchases), and optional Sentry (crash reporting if enabled in production builds).
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
+          <Text className="text-white font-semibold">Children&apos;s privacy{"\n"}</Text>
+          {APP_NAME} is not intended for children under 13, and we do not knowingly collect
+          information from anyone under 13. If you believe a child under 13 has created an
+          account, contact us so we can delete it.
+        </Text>
+        <Text className="text-slate-300 text-sm leading-6 mb-4">
           <Text className="text-white font-semibold">Account deletion{"\n"}</Text>
           You can delete your account in the app under Account → Delete account. This permanently
           removes your profile and associated logs. Active subscriptions must be cancelled in iOS

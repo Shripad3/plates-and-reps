@@ -8,6 +8,8 @@ export default function AuthLayout() {
   const segments = useSegments();
   const current = segments[segments.length - 1];
   const onOnboarding = current === "onboarding";
+  const onPersonalizing = current === "personalizing";
+  const onPlanSummary = current === "plan-summary";
   const onResetPassword = current === "reset-password";
 
   if (isLoading) {
@@ -18,8 +20,9 @@ export default function AuthLayout() {
     );
   }
 
-  // Allow authenticated users to finish onboarding or reset password from email link
-  if (session && !onOnboarding && !onResetPassword) {
+  // Allow authenticated users to finish onboarding, view the post-onboarding
+  // screens, or reset password from email link
+  if (session && !onOnboarding && !onPersonalizing && !onPlanSummary && !onResetPassword) {
     return <Redirect href="/(tabs)/home" />;
   }
 
@@ -28,6 +31,8 @@ export default function AuthLayout() {
       <Stack.Screen name="login" />
       <Stack.Screen name="signup" />
       <Stack.Screen name="onboarding" />
+      <Stack.Screen name="personalizing" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="plan-summary" />
       <Stack.Screen name="reset-password" />
     </Stack>
   );

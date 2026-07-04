@@ -145,7 +145,7 @@ export default function OnboardingScreen() {
       queryClient.setQueryData(["goal"], savedGoal);
       queryClient.setQueryData(["profile"], savedProfile);
 
-      router.replace("/(tabs)/home");
+      router.replace("/(auth)/personalizing");
     } catch (e: unknown) {
       Alert.alert("Error", (e as Error).message);
     } finally {

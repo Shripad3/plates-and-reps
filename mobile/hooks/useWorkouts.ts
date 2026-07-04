@@ -141,3 +141,14 @@ export function useDeleteWorkoutSession() {
     },
   });
 }
+
+export function useClearWorkoutHistory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionIds: string[]) => api.deleteWorkoutSessions(sessionIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-sessions"] });
+    },
+  });
+}

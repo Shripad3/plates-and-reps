@@ -32,11 +32,27 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const payload = (await req.json()) as RevenueCatEvent;
+    const payload = (await req.json().catch(() => null)) as RevenueCatEvent | null;
+
+    // Reject malformed payloads before touching the database
+    if (!payload || typeof payload !== "object") {
+      return new Response(JSON.stringify({ error: "Invalid payload" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const event = payload.event;
     const userId = event?.app_user_id;
-    if (!userId) {
+
+    if (typeof userId !== "string" || !userId.trim()) {
       return new Response(JSON.stringify({ ok: true, skipped: "no user" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (typeof event?.type !== "string") {
+      return new Response(JSON.stringify({ ok: true, skipped: "no event type" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

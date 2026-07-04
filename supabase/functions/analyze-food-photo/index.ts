@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { assertPhotoAnalysisAllowed, recordAiUsage } from "../_shared/usageLimits.ts";
+import { validateImageUrl, respond400 } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -67,16 +68,14 @@ Deno.serve(async (req: Request) => {
 
     await recordAiUsage(admin, user.id, "photo_analysis");
 
-    const { image_url } = await req.json();
-    if (!image_url) {
-      return new Response(JSON.stringify({ error: "image_url required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const body = await req.json().catch(() => ({}));
+    const { image_url } = body;
+
+    const urlError = validateImageUrl(image_url);
+    if (urlError) return respond400(urlError);
 
     // Fetch image and encode as data URL for Groq image input
-    const imgRes = await fetch(image_url);
+    const imgRes = await fetch(image_url as string);
     if (!imgRes.ok) throw new Error("Failed to fetch image");
     const imgBuffer = await imgRes.arrayBuffer();
     const base64Data = toBase64(imgBuffer);
