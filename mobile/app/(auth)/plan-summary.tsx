@@ -105,18 +105,21 @@ export default function PlanSummaryScreen() {
                 value={`${goal?.target_protein_g ?? 0}g`}
                 progress={100}
                 color={colors.macro.protein}
+                trackColor={colors.macro.track.protein}
               />
               <ProgressRing
                 label="Carbs"
                 value={`${goal?.target_carbs_g ?? 0}g`}
                 progress={100}
                 color={colors.macro.carbs}
+                trackColor={colors.macro.track.carbs}
               />
               <ProgressRing
                 label="Fat"
                 value={`${goal?.target_fat_g ?? 0}g`}
                 progress={100}
                 color={colors.macro.fat}
+                trackColor={colors.macro.track.fat}
               />
             </View>
           </Card>

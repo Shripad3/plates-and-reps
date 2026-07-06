@@ -126,7 +126,7 @@ export default function SignupScreen() {
               value={isAdult}
               onValueChange={setIsAdult}
               trackColor={{ false: colors.surface.elevated, true: colors.brand[500] }}
-              thumbColor="#fff"
+              thumbColor={colors.white}
             />
           </View>
 

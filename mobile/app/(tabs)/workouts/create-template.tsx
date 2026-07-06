@@ -168,7 +168,7 @@ export default function CreateTemplateScreen() {
               <Text className="text-slate-400 text-sm mb-1.5">Routine Name</Text>
               <AppTextInput
                 placeholder="e.g. Push Day"
-                placeholderTextColor="#64748b"
+                placeholderTextColor={colors.text.muted}
                 value={name}
                 onChangeText={setName}
                 onFocus={(event) => scrollInputIntoView(scrollRef, event.nativeEvent.target)}

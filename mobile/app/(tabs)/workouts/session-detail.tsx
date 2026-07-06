@@ -7,6 +7,7 @@ import { getSessionSets, getWorkoutSessionById } from "@/lib/api";
 import type { WorkoutSet } from "@/types";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
+import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { colors } from "@/lib/theme";
 
 function groupSetsByExercise(sets: WorkoutSet[]) {
@@ -22,6 +23,7 @@ function groupSetsByExercise(sets: WorkoutSet[]) {
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const tabBarPadding = useTabBarScrollPadding();
 
   const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ["workout-session", id],
@@ -47,7 +49,7 @@ export default function SessionDetailScreen() {
     <SwipeBackGesture>
       <SafeAreaView className="flex-1 bg-surface">
         <ScreenHeader title="Workout Summary" />
-        <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: tabBarPadding }}>
           {sessionLoading ? (
             <ActivityIndicator color={colors.brand[400]} className="py-8" />
           ) : session ? (

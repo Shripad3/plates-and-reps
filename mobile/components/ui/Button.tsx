@@ -12,16 +12,23 @@ type ButtonProps = TouchableOpacityProps & {
   fullWidth?: boolean;
 };
 
+/**
+ * Three-tier button system (Section 6):
+ *   primary   — brand fill, white text
+ *   secondary — transparent, brand border + brand text
+ *   ghost     — no fill, no border, brand text (link-style)
+ *   danger    — red tint (destructive actions)
+ */
 const VARIANT_CLASS: Record<Variant, string> = {
   primary: "bg-brand-500",
-  secondary: "bg-surface-elevated border border-surface-border",
-  ghost: "bg-brand-500/15",
+  secondary: "border border-brand-500/50",
+  ghost: "",
   danger: "bg-red-500/15",
 };
 
 const VARIANT_TEXT: Record<Variant, string> = {
   primary: "text-white",
-  secondary: "text-white",
+  secondary: "text-brand-400",
   ghost: "text-brand-400",
   danger: "text-red-400",
 };
@@ -60,7 +67,7 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "primary" ? "#fff" : colors.brand[400]} />
+        <ActivityIndicator color={variant === "primary" ? colors.white : colors.brand[400]} />
       ) : (
         <Text className={`font-semibold ${VARIANT_TEXT[variant]} ${SIZE_TEXT[size]}`}>{label}</Text>
       )}

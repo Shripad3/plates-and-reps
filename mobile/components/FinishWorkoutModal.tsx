@@ -55,7 +55,7 @@ export function FinishWorkoutModal({
                 value={shareToFeed}
                 onValueChange={setShareToFeed}
                 trackColor={{ false: colors.surface.elevated, true: colors.brand[500] }}
-                thumbColor="#fff"
+                thumbColor={colors.white}
                 disabled={saving}
               />
             </View>
@@ -74,7 +74,7 @@ export function FinishWorkoutModal({
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={colors.white} size="small" />
                 ) : (
                   <Text className="text-white font-semibold">Finish</Text>
                 )}

@@ -3,7 +3,7 @@ import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/Button";
-import { colors } from "@/lib/theme";
+import { colors, fontSize } from "@/lib/theme";
 
 type IoniconsName = ComponentProps<typeof Ionicons>["name"];
 
@@ -13,6 +13,8 @@ type EmptyStateProps = {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** Compact mode: tighter padding + smaller icon, for inline use within lists. */
+  compact?: boolean;
   children?: ReactNode;
 };
 
@@ -22,20 +24,72 @@ export function EmptyState({
   description,
   actionLabel,
   onAction,
+  compact = false,
   children,
 }: EmptyStateProps) {
+  const iconSize = compact ? 32 : 52;
+  const iconRadius = compact ? 10 : 16;
+  const glyphSize = compact ? 16 : 24;
+
   return (
-    <View className="items-center py-12 px-4">
-      <View className="w-14 h-14 rounded-2xl bg-surface-elevated border border-surface-border items-center justify-center mb-4">
-        <Ionicons name={icon} size={26} color={colors.brand[400]} />
+    <View
+      style={{
+        alignItems: "center",
+        paddingVertical: compact ? 16 : 48,
+        paddingHorizontal: compact ? 12 : 20,
+      }}
+    >
+      {/* Icon container */}
+      <View
+        style={{
+          width: iconSize,
+          height: iconSize,
+          borderRadius: iconRadius,
+          backgroundColor: colors.surface.elevated,
+          borderWidth: 1,
+          borderColor: colors.surface.border,
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: compact ? 10 : 16,
+        }}
+      >
+        <Ionicons name={icon} size={glyphSize} color={colors.brand[400]} />
       </View>
-      <Text className="text-white text-lg font-semibold mb-2 text-center">{title}</Text>
+
+      {/* Headline */}
+      <Text
+        style={{
+          fontSize: compact ? fontSize.label : fontSize.body,
+          fontWeight: "700",
+          color: compact ? colors.text.secondary : colors.text.primary,
+          textAlign: "center",
+          marginBottom: 4,
+          letterSpacing: -0.2,
+        }}
+      >
+        {title}
+      </Text>
+
+      {/* Subtext */}
       {description ? (
-        <Text className="text-slate-400 text-sm text-center mb-6 leading-5">{description}</Text>
+        <Text
+          style={{
+            fontSize: fontSize.label,
+            color: colors.text.muted,
+            textAlign: "center",
+            lineHeight: 20,
+            marginBottom: actionLabel ? 20 : 0,
+          }}
+        >
+          {description}
+        </Text>
       ) : null}
+
+      {/* Primary CTA — only action available in empty state */}
       {actionLabel && onAction ? (
-        <Button label={actionLabel} onPress={onAction} size="md" />
+        <Button variant="primary" label={actionLabel} onPress={onAction} size="md" />
       ) : null}
+
       {children}
     </View>
   );

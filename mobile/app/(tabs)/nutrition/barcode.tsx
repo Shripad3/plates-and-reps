@@ -21,6 +21,7 @@ import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { EmptyState } from "@/components/EmptyState";
 import { MealDot } from "@/components/ui/IconButton";
 import { MEAL_COLORS } from "@/lib/mealColors";
+import { colors } from "@/lib/theme";
 
 const isExpoGo = Constants.appOwnership === "expo";
 
@@ -149,7 +150,7 @@ function LogConfirmModal({
               disabled={isLogging}
             >
               {isLogging ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.white} />
               ) : (
                 <Text className="text-white font-semibold">Log 1 Serving</Text>
               )}

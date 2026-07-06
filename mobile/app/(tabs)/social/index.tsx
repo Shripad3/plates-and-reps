@@ -549,7 +549,7 @@ export default function SocialScreen() {
     <TabSafeArea>
       <View className="px-5 pt-4 pb-3">
         <View className="mb-3">
-          <Text className="text-white text-2xl font-bold tracking-tight">Social</Text>
+          <Text style={{ fontSize: 32, fontWeight: "800", color: colors.text.primary, letterSpacing: -1 }}>Social</Text>
         </View>
         <View className="flex-row bg-surface-card border border-surface-border rounded-xl p-1">
           {(["feed", "people"] as const).map((t) => (

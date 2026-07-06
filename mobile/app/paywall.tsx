@@ -9,8 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
-import type { PurchasesPackage } from "react-native-purchases";
-import { PURCHASES_ERROR_CODE, type PurchasesError } from "react-native-purchases";
+import { PURCHASES_ERROR_CODE, PACKAGE_TYPE, type PurchasesError, type PurchasesPackage } from "react-native-purchases";
 import {
   getOfferings,
   initPurchases,
@@ -26,6 +25,30 @@ import { APP_PREMIUM_NAME } from "@/constants";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { colors } from "@/lib/theme";
+
+function periodLabel(pkg: PurchasesPackage): string {
+  switch (pkg.packageType) {
+    case PACKAGE_TYPE.ANNUAL:      return "/year";
+    case PACKAGE_TYPE.SIX_MONTH:   return "/6 months";
+    case PACKAGE_TYPE.THREE_MONTH: return "/3 months";
+    case PACKAGE_TYPE.TWO_MONTH:   return "/2 months";
+    case PACKAGE_TYPE.MONTHLY:     return "/month";
+    case PACKAGE_TYPE.WEEKLY:      return "/week";
+    default:                       return "";
+  }
+}
+
+function periodWord(pkg: PurchasesPackage): string {
+  switch (pkg.packageType) {
+    case PACKAGE_TYPE.ANNUAL:      return "year";
+    case PACKAGE_TYPE.SIX_MONTH:   return "6 months";
+    case PACKAGE_TYPE.THREE_MONTH: return "3 months";
+    case PACKAGE_TYPE.TWO_MONTH:   return "2 months";
+    case PACKAGE_TYPE.MONTHLY:     return "month";
+    case PACKAGE_TYPE.WEEKLY:      return "week";
+    default:                       return "period";
+  }
+}
 
 const FEATURES = [
   { free: "30-day history", premium: "Full history" },
@@ -176,14 +199,17 @@ export default function PaywallScreen() {
           </Card>
         ) : (
           packages.map((pkg) => (
-            <Button
-              key={pkg.identifier}
-              label={`${pkg.product.title} — ${pkg.product.priceString}`}
-              onPress={() => handlePurchase(pkg)}
-              loading={purchasing}
-              fullWidth
-              className="mb-3"
-            />
+            <View key={pkg.identifier} className="mb-4">
+              <Button
+                label={`${pkg.product.title} — ${pkg.product.priceString}${periodLabel(pkg)}`}
+                onPress={() => handlePurchase(pkg)}
+                loading={purchasing}
+                fullWidth
+              />
+              <Text className="text-slate-500 text-xs text-center mt-2">
+                Auto-renews at {pkg.product.priceString}/{periodWord(pkg)} unless cancelled at least 24 hours before the end of the current period.
+              </Text>
+            </View>
           ))
         )}
 
@@ -192,15 +218,22 @@ export default function PaywallScreen() {
         </TouchableOpacity>
 
         <Text className="text-slate-600 text-xs text-center leading-5 px-4">
-          Payment charged to Apple ID. Subscriptions renew automatically unless cancelled 24h
-          before period end. Manage in Settings.
+          Payment charged to your Apple ID account. Manage or cancel your subscription anytime in{" "}
+          Settings {">"} Apple ID {">"} Subscriptions.
         </Text>
-        <View className="flex-row justify-center gap-4 mt-3">
-          <TouchableOpacity onPress={() => router.push("/legal/terms" as Href)}>
-            <Text className="text-slate-500 text-xs">Terms</Text>
+        <View className="flex-row justify-center items-center gap-2 mt-4 mb-2">
+          <TouchableOpacity
+            className="px-3 py-2"
+            onPress={() => router.push("/legal/terms" as Href)}
+          >
+            <Text className="text-brand-400 text-sm underline">Terms of Use</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push("/legal/privacy" as Href)}>
-            <Text className="text-slate-500 text-xs">Privacy</Text>
+          <Text className="text-slate-600">·</Text>
+          <TouchableOpacity
+            className="px-3 py-2"
+            onPress={() => router.push("/legal/privacy" as Href)}
+          >
+            <Text className="text-brand-400 text-sm underline">Privacy Policy</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -6,6 +6,7 @@ import { MEAL_TYPES, type MealType } from "@/constants";
 import { MEAL_COLORS } from "@/lib/mealColors";
 import { MealDot } from "@/components/ui/IconButton";
 import type { NutritionLog } from "@/types";
+import { colors } from "@/lib/theme";
 
 type EditableFields = {
   food_name: string;
@@ -189,7 +190,7 @@ export function EditNutritionLogModal({ log, saving = false, onClose, onSave }: 
                   onPress={handleSave}
                   disabled={saving}
                 >
-                  {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-semibold">Save</Text>}
+                  {saving ? <ActivityIndicator color={colors.white} size="small" /> : <Text className="text-white font-semibold">Save</Text>}
                 </TouchableOpacity>
               </View>
             </View>

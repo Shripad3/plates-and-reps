@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { ScrollView, View, Text, TouchableOpacity, RefreshControl, Alert } from "react-native";
+import { useQuery } from "@tanstack/react-query";
+import { ScrollView, View, Text, TouchableOpacity, RefreshControl, Alert, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { TabSafeArea } from "@/components/TabSafeArea";
 import { router } from "expo-router";
@@ -8,10 +9,10 @@ import {
   useDeleteNutritionLog,
   useUpdateNutritionLog,
   useDaySummary,
-  useLogWater,
   useLogFood,
   useRecentFoods,
 } from "@/hooks/useNutrition";
+import { getGoal } from "@/lib/api";
 import { usePremium } from "@/hooks/usePremium";
 import { historyCutoffDate } from "@/lib/premium";
 import { navigateToPaywall } from "@/lib/navigateToPaywall";
@@ -20,14 +21,16 @@ import { todayLocal, shiftDateLocal, formatDateLabel } from "@/lib/dates";
 import { useScreenRefresh } from "@/hooks/useScreenRefresh";
 import { useRefetchOnFocus } from "@/hooks/useRefetchOnFocus";
 import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
+import { EmptyState } from "@/components/EmptyState";
 import { SwipeToDeleteRow } from "@/components/SwipeToDeleteRow";
 import { isPendingLogId } from "@/lib/offlineNutrition";
 import { AiFoodLogActions } from "@/components/AiFoodLogActions";
 import { EditNutritionLogModal } from "@/components/EditNutritionLogModal";
 import { MEAL_COLORS } from "@/lib/mealColors";
-import { MealDot } from "@/components/ui/IconButton";
-import { Card } from "@/components/ui/Card";
-import { colors } from "@/lib/theme";
+import { Card, SectionTitle } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { WaterWidget } from "@/components/WaterWidget";
+import { colors, radii } from "@/lib/theme";
 import type { NutritionLog } from "@/types";
 
 function MealSection({
@@ -36,34 +39,40 @@ function MealSection({
   onDelete,
   onAdd,
   onEdit,
+  isFirst,
 }: {
   mealType: MealType;
   logs: ReturnType<typeof useNutritionLogs>["data"];
   onDelete: (id: string) => void;
   onAdd: (mealType: MealType) => void;
   onEdit: (log: NutritionLog) => void;
+  isFirst: boolean;
 }) {
   const items = (logs ?? []).filter((l) => l.meal_type === mealType);
   const mealCalories = items.reduce((sum, l) => sum + l.calories, 0);
+  const isEmpty = items.length === 0;
 
   return (
-    <View className="mb-4">
-      <View className="flex-row items-center justify-between mb-2">
-        <View className="flex-row items-center gap-2">
-          <MealDot color={MEAL_COLORS[mealType]} />
-          <Text className="text-white font-semibold capitalize">{mealType}</Text>
-          {mealCalories > 0 && (
-            <Text className="text-slate-500 text-sm">{Math.round(mealCalories)} kcal</Text>
-          )}
-        </View>
-        <TouchableOpacity
-          className="bg-brand-500/12 border border-brand-500/20 rounded-lg px-3 py-1.5"
-          onPress={() => onAdd(mealType)}
-        >
-          <Text className="text-brand-400 text-sm font-medium">Add</Text>
-        </TouchableOpacity>
+    <View>
+      {!isFirst && (
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.surface.border }} />
+      )}
+
+      {/* Header row — fixed 44pt */}
+      <View style={{ height: 44, flexDirection: "row", alignItems: "center", paddingHorizontal: 14 }}>
+        <View
+          style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: MEAL_COLORS[mealType], marginRight: 10 }}
+        />
+        <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text.primary, textTransform: "capitalize", flex: 1 }}>
+          {mealType}
+        </Text>
+        <Text style={{ fontSize: 13, color: colors.text.muted, marginRight: 4 }}>
+          {isEmpty ? "— empty" : `${Math.round(mealCalories)} kcal`}
+        </Text>
+        <Button variant="ghost" size="sm" label="Add" onPress={() => onAdd(mealType)} />
       </View>
 
+      {/* Food items — only rendered when present */}
       {items.map((log) => {
         const name = log.food_name ?? log.food?.name ?? "Unknown food";
         const pending = isPendingLogId(log.id);
@@ -73,31 +82,42 @@ function MealSection({
               activeOpacity={pending ? 1 : 0.7}
               disabled={pending}
               onPress={() => onEdit(log)}
-              className="bg-surface-card border border-surface-border rounded-xl px-4 py-3 flex-row items-center justify-between"
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: colors.surface.elevated,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.surface.border,
+              }}
             >
-              <View className="flex-1">
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-white text-sm font-medium">{name}</Text>
-                  {pending ? (
-                    <Text className="text-amber-400 text-[10px] font-semibold">SYNCING</Text>
-                  ) : null}
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "500", color: colors.text.primary }} numberOfLines={1}>
+                    {name}
+                  </Text>
+                  {pending && (
+                    <Text style={{ fontSize: 10, fontWeight: "700", color: "#F59E0B" }}>SYNCING</Text>
+                  )}
                 </View>
-                <Text className="text-slate-500 text-xs mt-0.5">
-                  {log.servings} × {log.food?.serving_label ?? "serving"} ·{" "}
-                  {log.protein_g.toFixed(1)}p {log.carbs_g.toFixed(1)}c {log.fat_g.toFixed(1)}f
+                <Text style={{ fontSize: 12, color: colors.text.muted }}>
+                  {log.servings} × {log.food?.serving_label ?? "serving"}
+                  {" · "}
+                  <Text style={{ color: colors.macro.protein }}>{Math.round(log.protein_g)}p</Text>
+                  {" "}
+                  <Text style={{ color: colors.macro.carbs }}>{Math.round(log.carbs_g)}c</Text>
+                  {" "}
+                  <Text style={{ color: colors.macro.fat }}>{Math.round(log.fat_g)}f</Text>
                 </Text>
               </View>
-              <Text className="text-white font-semibold ml-3">{Math.round(log.calories)}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text.primary }}>
+                {Math.round(log.calories)}
+              </Text>
             </TouchableOpacity>
           </SwipeToDeleteRow>
         );
       })}
-
-      {items.length === 0 && (
-        <View className="bg-surface-card border border-surface-border rounded-xl px-4 py-3">
-          <Text className="text-slate-500 text-sm">Nothing logged yet</Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -116,13 +136,14 @@ export default function NutritionScreen() {
   const { data: logs } = useNutritionLogs(selectedDate);
   const { data: recentFoods = [] } = useRecentFoods();
   const logFood = useLogFood();
+  const { data: goal } = useQuery({ queryKey: ["goal"], queryFn: getGoal });
   const deleteLog = useDeleteNutritionLog();
   const updateLog = useUpdateNutritionLog();
-  const logWater = useLogWater();
   const [editingLog, setEditingLog] = useState<NutritionLog | null>(null);
   const { isPremium, profile } = usePremium();
   const { calories, protein_g, carbs_g, fat_g, water_ml } = useDaySummary(selectedDate);
   const historyCutoff = historyCutoffDate(profile);
+  const hasAnyLogs = (logs ?? []).length > 0;
 
   function shiftDate(days: number) {
     const next = shiftDateLocal(selectedDate, days);
@@ -168,7 +189,7 @@ export default function NutritionScreen() {
   return (
     <TabSafeArea>
       <View className="px-5 pt-4 pb-2">
-        <Text className="text-white text-2xl font-bold tracking-tight">Nutrition</Text>
+        <Text style={{ fontSize: 32, fontWeight: "800", color: colors.text.primary, letterSpacing: -1 }}>Nutrition</Text>
       </View>
 
       <View className="flex-row items-center justify-between px-5 pb-4">
@@ -195,7 +216,7 @@ export default function NutritionScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[400]} />
         }
       >
-        <Card className="mb-5">
+        <Card variant="hero" className="mb-5">
           <View className="flex-row justify-between">
             {[
               { label: "Calories", value: Math.round(calories) },
@@ -210,48 +231,23 @@ export default function NutritionScreen() {
             ))}
           </View>
 
-          <View className="flex-row items-center justify-between pt-4 mt-4 border-t border-surface-border">
-            <View className="flex-row items-center gap-2">
-              <Ionicons name="water-outline" size={16} color={colors.info} />
-              <Text className="text-slate-400 text-sm">
-                {Math.round(water_ml / 100) / 10}L water
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <TouchableOpacity
-                className="bg-surface-elevated rounded-lg p-1.5"
-                disabled={water_ml <= 0}
-                onPress={() =>
-                  logWater.mutate({ date: selectedDate, amount_ml: -Math.min(250, water_ml) })
-                }
-              >
-                <Ionicons
-                  name="remove"
-                  size={16}
-                  color={water_ml <= 0 ? colors.text.muted : colors.text.secondary}
-                />
-              </TouchableOpacity>
-              {[250, 500].map((ml) => (
-                <TouchableOpacity
-                  key={ml}
-                  className="bg-surface-elevated rounded-lg px-3 py-1.5"
-                  onPress={() => logWater.mutate({ date: selectedDate, amount_ml: ml })}
-                >
-                  <Text className="text-slate-300 text-xs font-medium">+{ml}ml</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          <WaterWidget
+            date={selectedDate}
+            water_ml={water_ml}
+            target_ml={goal?.target_water_ml ?? 2500}
+            variant="compact"
+          />
         </Card>
 
         {recentFoods.length > 0 && selectedDate === today ? (
           <View className="mb-5">
-            <Text className="text-white font-semibold text-sm mb-2">Recent foods</Text>
+            <SectionTitle>Recent foods</SectionTitle>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
               {recentFoods.map((food) => (
                 <TouchableOpacity
                   key={`${food.food_name}-${food.food_id ?? ""}`}
-                  className="bg-surface-card border border-surface-border rounded-xl px-4 py-3 mr-2 min-w-[120]"
+                  style={{ borderRadius: radii.md }}
+                  className="bg-surface-card border border-surface-border px-4 py-3 mr-2 min-w-[120]"
                   onPress={() =>
                     logFood.mutate({
                       food_id: food.food_id,
@@ -280,18 +276,50 @@ export default function NutritionScreen() {
           </View>
         ) : null}
 
-        {MEAL_TYPES.map((mealType) => (
-          <MealSection
-            key={mealType}
-            mealType={mealType}
-            logs={logs}
-            onDelete={handleDelete}
-            onAdd={handleAddFood}
-            onEdit={setEditingLog}
-          />
-        ))}
+        {/* Summary row */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <Text style={{ fontSize: 11, fontWeight: "700", color: colors.text.muted, letterSpacing: 1.2, textTransform: "uppercase" }}>
+            {selectedDate === today ? "Today's meals" : "Meals"}
+          </Text>
+          {Math.round(calories) > 0 && (
+            <Text style={{ fontSize: 11, color: colors.text.muted }}>
+              {Math.round(calories)} kcal
+            </Text>
+          )}
+        </View>
 
-        <View className="h-8" />
+        {hasAnyLogs ? (
+          <View
+            style={{
+              borderRadius: radii.md,
+              borderWidth: 1,
+              borderColor: colors.surface.border,
+              overflow: "hidden",
+              backgroundColor: colors.surface.card,
+              marginBottom: 8,
+            }}
+          >
+            {MEAL_TYPES.map((mealType, i) => (
+              <MealSection
+                key={mealType}
+                mealType={mealType}
+                logs={logs}
+                onDelete={handleDelete}
+                onAdd={handleAddFood}
+                onEdit={setEditingLog}
+                isFirst={i === 0}
+              />
+            ))}
+          </View>
+        ) : (
+          <EmptyState
+            icon="restaurant-outline"
+            title="Nothing logged today"
+            description="Tap Add next to any meal to start tracking."
+            actionLabel="Log food"
+            onAction={() => handleAddFood("breakfast")}
+          />
+        )}
       </ScrollView>
 
       <EditNutritionLogModal

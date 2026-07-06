@@ -16,11 +16,11 @@ import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { todayLocal } from "@/lib/dates";
 import { AppTextInput } from "@/components/AppTextInput";
 import { EmptyState } from "@/components/EmptyState";
-import { Card } from "@/components/ui/Card";
+import { Card, SectionTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { WeightLineChart } from "@/components/WeightLineChart";
 import { EditValueModal } from "@/components/EditValueModal";
-import { colors } from "@/lib/theme";
+import { colors, fontSize } from "@/lib/theme";
 
 const MIN_WEIGHT_KG = 30;
 const MAX_WEIGHT_KG = 300;
@@ -51,12 +51,14 @@ function StatCard({
 }) {
   const inner = (
     <>
-      <View className="flex-row items-center justify-between mb-1">
-        <Text className="text-slate-400 text-xs">{label}</Text>
-        {onEdit ? <Ionicons name="pencil" size={12} color="#64748b" /> : null}
+      <View className="flex-row items-center justify-between mb-2">
+        <Text style={{ fontSize: fontSize.caption, color: colors.text.muted }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{label}</Text>
+        {onEdit ? <Ionicons name="pencil" size={12} color={colors.text.muted} /> : null}
       </View>
       {typeof value === "string" ? (
-        <Text className="text-white text-2xl font-bold">{value}</Text>
+        <Text style={{ fontSize: 30, fontWeight: "800", color: colors.text.primary, letterSpacing: -0.5 }}>
+          {value}
+        </Text>
       ) : (
         value
       )}
@@ -69,7 +71,7 @@ function StatCard({
 
   return (
     <TouchableOpacity
-      className="flex-1 bg-surface-card border border-surface-border rounded-xl p-4"
+      className="flex-1 bg-surface-card border border-surface-border rounded-xl p-4 py-5"
       onPress={onEdit}
       activeOpacity={0.75}
     >
@@ -208,13 +210,15 @@ export default function ProgressScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[400]} />
         }
       >
-        <View className="px-5 pt-4 pb-2">
-          <Text className="text-white text-2xl font-bold tracking-tight">Progress</Text>
+        <View className="px-5 pt-4 pb-3">
+          <Text style={{ fontSize: 32, fontWeight: "800", color: colors.text.primary, letterSpacing: -1 }}>
+            Progress
+          </Text>
         </View>
 
         <View className="mx-5 mt-4">
           <Card>
-            <Text className="text-white font-semibold mb-3">Log today's weight</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: colors.text.secondary, marginBottom: 12 }}>Log today's weight</Text>
             <View className="flex-row gap-3 items-center">
               <AppTextInput
                 className="flex-1 bg-surface-elevated text-white rounded-xl border border-surface-border"
@@ -251,13 +255,17 @@ export default function ProgressScreen() {
               label="90-day change"
               value={
                 <Text
-                  className={`text-2xl font-bold ${
-                    weightChange < 0
-                      ? "text-green-400"
-                      : weightChange > 0
-                        ? "text-red-400"
-                        : "text-white"
-                  }`}
+                  style={{
+                    fontSize: 30,
+                    fontWeight: "800",
+                    letterSpacing: -0.5,
+                    color:
+                      weightChange < 0
+                        ? colors.success
+                        : weightChange > 0
+                          ? colors.danger
+                          : colors.text.muted,
+                  }}
                 >
                   {weightChange > 0 ? "+" : ""}
                   {weightChange.toFixed(1)}kg
@@ -270,7 +278,7 @@ export default function ProgressScreen() {
         {weightMetrics.length > 1 && (
           <View className="mx-5 mt-4">
             <Card>
-              <Text className="text-white font-semibold mb-3">Weight trend</Text>
+              <Text style={{ fontSize: 13, fontWeight: "600", color: colors.text.secondary, marginBottom: 12 }}>Weight trend</Text>
               <WeightLineChart metrics={weightMetrics} goalWeightKg={goal?.target_weight_kg} />
             </Card>
           </View>
@@ -278,7 +286,7 @@ export default function ProgressScreen() {
 
         {weightMetrics.length > 0 && (
           <View className="px-5 mt-5 mb-8">
-            <Text className="text-white font-semibold text-base mb-3">History</Text>
+            <SectionTitle>History</SectionTitle>
             {[...weightMetrics].reverse().slice(0, 10).map((m) => (
               <View
                 key={m.id}

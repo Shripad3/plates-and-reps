@@ -15,8 +15,8 @@ import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { EmptyState } from "@/components/EmptyState";
 import { SwipeToDeleteRow } from "@/components/SwipeToDeleteRow";
 import { Button } from "@/components/ui/Button";
-import { Section, SectionTitle } from "@/components/ui/Card";
-import { colors } from "@/lib/theme";
+import { Card, Section, SectionTitle } from "@/components/ui/Card";
+import { colors, radii } from "@/lib/theme";
 
 export default function WorkoutsScreen() {
   const refreshKeys = useMemo(
@@ -62,7 +62,7 @@ export default function WorkoutsScreen() {
         }
       >
         <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
-          <Text className="text-white text-2xl font-bold tracking-tight">Train</Text>
+          <Text style={{ fontSize: 32, fontWeight: "800", color: colors.text.primary, letterSpacing: -1 }}>Train</Text>
           <Button
             label="Start"
             size="sm"
@@ -72,7 +72,8 @@ export default function WorkoutsScreen() {
 
         <Section className="mt-4">
           <TouchableOpacity
-            className="bg-brand-500 rounded-xl p-5 flex-row items-center justify-between"
+            style={{ borderRadius: 16 }}
+            className="bg-brand-500 p-5 flex-row items-center justify-between"
             onPress={() => router.push("/workout-session")}
             activeOpacity={0.85}
           >
@@ -81,7 +82,7 @@ export default function WorkoutsScreen() {
               <Text className="text-white/80 text-sm mt-0.5">Begin an empty workout</Text>
             </View>
             <View className="w-10 h-10 rounded-xl bg-white/15 items-center justify-center">
-              <Ionicons name="play" size={20} color="#fff" />
+              <Ionicons name="play" size={20} color={colors.white} />
             </View>
           </TouchableOpacity>
         </Section>
@@ -89,14 +90,20 @@ export default function WorkoutsScreen() {
         <Section className="mt-6">
           <View className="flex-row items-center justify-between mb-3">
             <SectionTitle>My routines</SectionTitle>
-            <View className="flex-row items-center gap-4 -mt-3">
-              <TouchableOpacity onPress={() => router.push("/(tabs)/workouts/create-template")}>
-                <Text className="text-brand-400 text-sm font-medium">New</Text>
-              </TouchableOpacity>
+            <View className="flex-row items-center gap-1 -mt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                label="New"
+                onPress={() => router.push("/(tabs)/workouts/create-template")}
+              />
               {templates.length > 0 && (
-                <TouchableOpacity onPress={() => router.push("/(tabs)/workouts/templates")}>
-                  <Text className="text-brand-400 text-sm">View all</Text>
-                </TouchableOpacity>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  label="View all"
+                  onPress={() => router.push("/(tabs)/workouts/templates")}
+                />
               )}
             </View>
           </View>
@@ -111,9 +118,10 @@ export default function WorkoutsScreen() {
             />
           ) : (
             templates.slice(0, 4).map((t) => (
-              <View
+              <Card
                 key={t.id}
-                className="bg-surface-card border border-surface-border rounded-xl p-4 mb-2 flex-row items-center justify-between"
+                variant="list-row"
+                className="mb-2 flex-row items-center justify-between"
               >
                 <TouchableOpacity
                   className="flex-1 mr-3"
@@ -143,7 +151,7 @@ export default function WorkoutsScreen() {
                     <Ionicons name="play-circle" size={28} color={colors.brand[400]} />
                   </TouchableOpacity>
                 </View>
-              </View>
+              </Card>
             ))
           )}
         </Section>
@@ -158,14 +166,13 @@ export default function WorkoutsScreen() {
             )}
           </View>
           {sessions.length === 0 ? (
-            <View className="bg-surface-card border border-surface-border rounded-xl p-4">
-              <Text className="text-slate-400 text-sm">No workouts logged yet.</Text>
-            </View>
+            <EmptyState compact icon="barbell-outline" title="No workouts logged yet" />
           ) : (
             sessions.slice(0, 5).map((s) => (
               <SwipeToDeleteRow key={s.id} title={s.name} onDelete={() => deleteSession.mutate(s.id)}>
                 <TouchableOpacity
-                  className="bg-surface-card border border-surface-border rounded-xl p-4"
+                  style={{ borderRadius: radii.sm }}
+                  className="bg-surface-card border border-surface-border p-4"
                   onPress={() =>
                     router.push(`/(tabs)/workouts/session-detail?id=${s.id}` as Href)
                   }

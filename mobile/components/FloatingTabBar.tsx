@@ -1,5 +1,5 @@
 import { useContext, useEffect } from "react";
-import { View, Text, Pressable, Platform, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarHeightCallbackContext } from "@react-navigation/bottom-tabs";
@@ -7,43 +7,40 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import type { ComponentProps } from "react";
 import type { EdgeInsets } from "react-native-safe-area-context";
 import { useNavigationHistoryStore } from "@/stores/navigationHistoryStore";
-import { colors } from "@/lib/theme";
+import { colors, fontSize } from "@/lib/theme";
 
 type IoniconsName = ComponentProps<typeof Ionicons>["name"];
 
 const TAB_META: Record<string, { icon: IoniconsName; iconFocused: IoniconsName; label: string }> = {
-  "home/index": { icon: "home-outline", iconFocused: "home", label: "Home" },
-  "nutrition/index": { icon: "nutrition-outline", iconFocused: "nutrition", label: "Food" },
-  "workouts/index": { icon: "barbell-outline", iconFocused: "barbell", label: "Train" },
-  "social/index": { icon: "people-outline", iconFocused: "people", label: "Social" },
-  "progress/index": { icon: "trending-up-outline", iconFocused: "trending-up", label: "Stats" },
+  "home/index":      { icon: "home-outline",       iconFocused: "home",        label: "Home"   },
+  "nutrition":       { icon: "nutrition-outline",   iconFocused: "nutrition",   label: "Food"   },
+  "workouts/index":  { icon: "barbell-outline",     iconFocused: "barbell",     label: "Train"  },
+  "social/index":    { icon: "people-outline",      iconFocused: "people",      label: "Social" },
+  "progress/index":  { icon: "trending-up-outline", iconFocused: "trending-up", label: "Stats"  },
 };
 
 export const BAR_HEIGHT = 62;
-const HORIZONTAL_MARGIN = 20;
-const BAR_BOTTOM_GAP = 12;
-const SCROLL_GAP = 12;
+const SCROLL_GAP = 20; // breathing room between last content item and bar top
 
 export function getTabScrollPadding(insets: Pick<EdgeInsets, "bottom">) {
-  return BAR_HEIGHT + Math.max(insets.bottom, BAR_BOTTOM_GAP) + SCROLL_GAP;
+  return BAR_HEIGHT + insets.bottom + SCROLL_GAP;
 }
 
 export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
   const pushRoute = useNavigationHistoryStore((s) => s.push);
-  const bottom = Math.max(insets.bottom, BAR_BOTTOM_GAP);
-  const totalHeight = BAR_HEIGHT + bottom + SCROLL_GAP;
 
+  // Report 0 to React Navigation so it doesn't add its own padding on top of ours.
   useEffect(() => {
-    onHeightChange?.(totalHeight);
-  }, [onHeightChange, totalHeight]);
+    onHeightChange?.(0);
+  }, [onHeightChange]);
 
   const visibleRoutes = state.routes.filter((route) => TAB_META[route.name]);
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrapper, { bottom }]}>
-      <View style={[styles.bar, { marginHorizontal: HORIZONTAL_MARGIN }]}>
+    <View style={[styles.wrapper, { paddingBottom: insets.bottom }]}>
+      <View style={styles.bar}>
         {visibleRoutes.map((route) => {
           const meta = TAB_META[route.name];
           const routeIndex = state.routes.findIndex((r) => r.key === route.key);
@@ -91,29 +88,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    backgroundColor: "transparent",
+    bottom: 0,
+    backgroundColor: colors.surface.card,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.surface.border,
   },
   bar: {
     flexDirection: "row",
     alignItems: "center",
     height: BAR_HEIGHT,
-    backgroundColor: colors.surface.card,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: colors.surface.border,
-    paddingHorizontal: 6,
-    overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.22,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    paddingHorizontal: 8,
   },
   tab: {
     flex: 1,
@@ -130,10 +114,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   tabInnerFocused: {
-    backgroundColor: "rgba(249, 115, 22, 0.14)",
+    backgroundColor: colors.accentWash,
   },
   label: {
-    fontSize: 10,
+    fontSize: fontSize.caption,
     fontWeight: "600",
     color: colors.text.muted,
     letterSpacing: 0.2,

@@ -8,6 +8,7 @@ import {
   type KeyboardTypeOptions,
 } from "react-native";
 import { AppTextInput } from "@/components/AppTextInput";
+import { colors } from "@/lib/theme";
 import { AnimatedKeyboardAvoidingView } from "@/components/AnimatedKeyboardAvoidingView";
 
 type EditValueModalProps = {
@@ -80,7 +81,7 @@ export function EditValueModal({
                   disabled={saving}
                 >
                   {saving ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <ActivityIndicator color={colors.white} size="small" />
                   ) : (
                     <Text className="text-white font-semibold">Save</Text>
                   )}

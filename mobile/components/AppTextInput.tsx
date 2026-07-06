@@ -1,10 +1,11 @@
 import { TextInput, type TextInputProps, StyleSheet } from "react-native";
+import { colors, fontSize } from "@/lib/theme";
 
 type Variant = "default" | "compact" | "chat";
 
 const VARIANTS: Record<Variant, object> = {
   default: {
-    fontSize: 16,
+    fontSize: fontSize.body,
     lineHeight: 22,
     paddingTop: 12,
     paddingBottom: 12,
@@ -12,7 +13,7 @@ const VARIANTS: Record<Variant, object> = {
     minHeight: 48,
   },
   compact: {
-    fontSize: 14,
+    fontSize: fontSize.label,
     lineHeight: 20,
     paddingTop: 8,
     paddingBottom: 8,
@@ -20,7 +21,7 @@ const VARIANTS: Record<Variant, object> = {
     minHeight: 40,
   },
   chat: {
-    fontSize: 16,
+    fontSize: fontSize.body,
     lineHeight: 22,
     paddingTop: 10,
     paddingBottom: 10,
@@ -39,7 +40,7 @@ export function AppTextInput({
   className = "bg-surface-card text-white rounded-xl border border-surface-border",
   variant = "default",
   style,
-  placeholderTextColor = "#64748b",
+  placeholderTextColor = colors.text.muted,
   multiline,
   ...props
 }: AppTextInputProps) {

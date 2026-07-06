@@ -61,7 +61,7 @@ export function SocialAuthButtons({ onBeforeSignIn }: Props) {
           <ActivityIndicator size="small" color={colors.text.secondary} />
         ) : (
           <>
-            <Ionicons name="logo-google" size={18} color="#fff" />
+            <Ionicons name="logo-google" size={18} color={colors.white} />
             <Text className="text-white font-medium text-sm">Continue with Google</Text>
           </>
         )}

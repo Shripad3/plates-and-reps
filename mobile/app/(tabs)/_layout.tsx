@@ -64,17 +64,10 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="home/index" />
-      <Tabs.Screen name="nutrition/index" />
+      <Tabs.Screen name="nutrition" />
       <Tabs.Screen name="workouts/index" />
       <Tabs.Screen name="social/index" />
       <Tabs.Screen name="progress/index" />
-
-      {/* Sub-routes — hidden from tab bar */}
-      <Tabs.Screen name="nutrition/log" options={{ href: null }} />
-      <Tabs.Screen
-        name="nutrition/barcode"
-        options={{ href: null, sceneStyle: { paddingBottom: 0 }, tabBarStyle: { display: "none" } }}
-      />
       <Tabs.Screen name="workouts/templates" options={{ href: null }} />
       <Tabs.Screen name="workouts/create-template" options={{ href: null }} />
       <Tabs.Screen name="workouts/session-detail" options={{ href: null }} />

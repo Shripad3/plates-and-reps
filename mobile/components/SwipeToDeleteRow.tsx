@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Alert, Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
+import { colors, fontSize } from "@/lib/theme";
 
 type SwipeToDeleteRowProps = {
   children: ReactNode;
@@ -24,7 +25,7 @@ export function SwipeToDeleteRow({ children, title, onDelete }: SwipeToDeleteRow
         onPress={confirmDelete}
         activeOpacity={0.85}
       >
-        <Ionicons name="trash-outline" size={22} color="#fff" />
+        <Ionicons name="trash-outline" size={22} color={colors.white} />
         <Text style={styles.deleteLabel}>Delete</Text>
       </TouchableOpacity>
     );
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   deleteAction: {
-    backgroundColor: "#ef4444",
+    backgroundColor: colors.danger,
     justifyContent: "center",
     alignItems: "center",
     width: 88,
@@ -58,8 +59,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   deleteLabel: {
-    color: "#fff",
-    fontSize: 11,
+    color: colors.white,
+    fontSize: fontSize.caption,
     fontWeight: "600",
   },
 });

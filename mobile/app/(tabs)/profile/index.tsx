@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Linking,
 } from "react-native";
 import { TabSafeArea } from "@/components/TabSafeArea";
 import { router, type Href } from "expo-router";
@@ -23,6 +24,7 @@ import {
   updateBodyMetric,
   deleteAccount,
 } from "@/lib/api";
+import { getSubscriptionDetails, initPurchases } from "@/lib/purchases";
 import { useAuthStore } from "@/stores/authStore";
 import {
   ACTIVITY_LEVELS,
@@ -100,7 +102,7 @@ function InfoRow({
       <Text className="text-slate-400 text-sm">{label}</Text>
       <View className="flex-row items-center gap-2 flex-1 justify-end ml-4">
         <Text className="text-white text-sm font-medium text-right">{value}</Text>
-        {onPress ? <Ionicons name="chevron-forward" size={14} color="#64748b" /> : null}
+        {onPress ? <Ionicons name="chevron-forward" size={14} color={colors.text.muted} /> : null}
       </View>
     </View>
   );
@@ -129,6 +131,16 @@ export default function ProfileScreen() {
   const queryClient = useQueryClient();
   const { isPremium } = usePremium();
   const [editField, setEditField] = useState<EditField>(null);
+
+  const { data: subscriptionDetails } = useQuery({
+    queryKey: ["subscription-details"],
+    queryFn: async () => {
+      await initPurchases(user?.id);
+      return getSubscriptionDetails();
+    },
+    enabled: !!user?.id && isPremium,
+    staleTime: 5 * 60_000,
+  });
   const [isDeleting, setIsDeleting] = useState(false);
   const refreshKeys = useMemo(() => [["profile"], ["goal"], ["body-metrics"]] as const, []);
   const { refreshing, onRefresh } = useScreenRefresh([...refreshKeys]);
@@ -550,6 +562,36 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {isPremium && (
+          <Section title="Subscription">
+            {subscriptionDetails ? (
+              <>
+                <InfoRow
+                  label="Plan"
+                  value={`${subscriptionDetails.title}${subscriptionDetails.priceString ? ` · ${subscriptionDetails.priceString}${subscriptionDetails.period}` : ""}`}
+                />
+                {subscriptionDetails.expirationDate ? (
+                  <InfoRow
+                    label="Renews"
+                    value={new Date(subscriptionDetails.expirationDate).toLocaleDateString("en-US", {
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <InfoRow label="Plan" value="Premium" />
+            )}
+            <InfoRow
+              label="Manage / Cancel"
+              value="Open Settings"
+              onPress={() => Linking.openURL("itms-apps://apps.apple.com/account/subscriptions")}
+            />
+          </Section>
+        )}
 
         <Section title="Coach">
           <InfoRow

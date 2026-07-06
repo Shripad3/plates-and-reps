@@ -85,8 +85,8 @@ export function QuickWinCard({ onLogged }: Props) {
   return (
     <Section className="mt-6">
       <Card>
-        <Text className="text-white font-semibold text-sm mb-1">Get an instant win</Text>
-        <Text className="text-slate-400 text-xs mb-4">
+        <Text style={{ fontSize: 17, fontWeight: "700", color: "#F2EFE9", letterSpacing: -0.3, marginBottom: 4 }}>Get an instant win</Text>
+        <Text style={{ fontSize: 12, color: "#6B7178", marginBottom: 16 }}>
           Log your first meal in one tap to start your streak.
         </Text>
 

@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BAR_HEIGHT } from "@/components/FloatingTabBar";
+import { colors } from "@/lib/theme";
 
 const STORAGE_KEY = "floating_chat_position";
 const BUTTON_SIZE = 56;
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
+        shadowColor: colors.shadow,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.22,
         shadowRadius: 8,

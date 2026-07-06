@@ -631,6 +631,9 @@ Deno.serve(async (req: Request) => {
 
     let finalText = "";
     const actionSummaries: string[] = [];
+    let nutritionSummary: {
+      calories: number; protein_g: number; carbs_g: number; fat_g: number; log_count: number;
+    } | null = null;
     for (let i = 0; i < 6; i++) {
       const groqRes = await fetch(GROQ_URL, {
         method: "POST",
@@ -682,6 +685,20 @@ Deno.serve(async (req: Request) => {
           : await executeTool(call.function.name, args, user.id, supabase);
 
         if (
+          call.function.name === "get_nutrition_summary" &&
+          result && typeof result === "object" && !("error" in result)
+        ) {
+          const r = result as { calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number; log_count?: number };
+          nutritionSummary = {
+            calories:   Math.round(toNumber(r.calories)),
+            protein_g:  Math.round(toNumber(r.protein_g)),
+            carbs_g:    Math.round(toNumber(r.carbs_g)),
+            fat_g:      Math.round(toNumber(r.fat_g)),
+            log_count:  Math.round(toNumber(r.log_count)),
+          };
+        }
+
+        if (
           result &&
           typeof result === "object" &&
           "success" in result &&
@@ -724,6 +741,12 @@ Deno.serve(async (req: Request) => {
           if (!word) continue;
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: word } }] })}\n\n`)
+          );
+        }
+        // Structured nutrition frame — clients scan for this before [DONE]
+        if (nutritionSummary) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ nutrition_summary: nutritionSummary })}\n\n`)
           );
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
