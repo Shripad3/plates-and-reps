@@ -686,6 +686,14 @@ export default function ProfileScreen() {
           </Section>
         ) : null}
 
+        <Section title="Help">
+          <InfoRow
+            label="App guide"
+            value="Replay tour"
+            onPress={() => router.push("/tour" as Href)}
+          />
+        </Section>
+
         <View className="flex-row gap-3 mb-4">
           <TouchableOpacity
             className="flex-1 bg-surface-card border border-surface-border rounded-xl py-3 items-center"

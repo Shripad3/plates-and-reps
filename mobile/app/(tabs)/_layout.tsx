@@ -1,8 +1,10 @@
-import { Tabs, Redirect } from "expo-router";
+import { Tabs, Redirect, router } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuthStore } from "@/stores/authStore";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { getGoal } from "@/lib/api";
@@ -10,6 +12,7 @@ import { FloatingTabBar } from "@/components/FloatingTabBar";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { colors } from "@/lib/theme";
 import { useIsMainTab } from "@/hooks/useIsMainTab";
+import { TOUR_SEEN_KEY } from "@/app/tour";
 
 export default function TabsLayout() {
   const { session, isLoading } = useAuthStore();
@@ -21,6 +24,13 @@ export default function TabsLayout() {
   });
   useOfflineSync();
   const isMainTab = useIsMainTab();
+
+  useEffect(() => {
+    if (!session) return;
+    AsyncStorage.getItem(TOUR_SEEN_KEY).then((seen) => {
+      if (!seen) router.push("/tour");
+    });
+  }, [session]);
 
   if (!fontsLoaded || isLoading || (session && goalLoading)) {
     return (

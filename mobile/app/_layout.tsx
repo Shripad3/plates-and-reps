@@ -128,6 +128,10 @@ export default function RootLayout() {
             name="paywall"
             options={{ presentation: "modal", headerShown: false }}
           />
+          <Stack.Screen
+            name="tour"
+            options={{ presentation: "fullScreenModal", headerShown: false, gestureEnabled: false }}
+          />
           <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
           <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
         </Stack>
