@@ -22,13 +22,25 @@ export default function PrivacyPolicyScreen() {
         <Text className="text-slate-300 text-sm leading-6 mb-4">
           <Text className="text-white font-semibold">How we use data{"\n"}</Text>
           To operate the app, sync your account across devices, provide {APP_AI_NAME} responses,
-          show social feed activity to people you connect with, and manage subscriptions. Food
-          photos and voice recordings are processed by our servers using Groq for analysis.
+          show social feed activity to people you connect with, and manage subscriptions.
+        </Text>
+        <Text className="text-slate-300 text-sm leading-6 mb-4">
+          <Text className="text-white font-semibold">AI coach &amp; Groq{"\n"}</Text>
+          {APP_AI_NAME} is powered by Groq, Inc. When you use the coach, we send Groq the information
+          needed to answer you: your display name, height, activity level, goals and target macros,
+          your nutrition totals and logged foods, your workout and cardio history, your logged body
+          weight, and the messages you type. Food photos and voice recordings you submit for AI food
+          logging are also processed through Groq. We ask for your consent before the coach is used
+          for the first time, and you can decline. Groq processes this data to generate a response
+          and does not use it to train its models.
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
           <Text className="text-white font-semibold">Third parties{"\n"}</Text>
-          Supabase (database and authentication), Groq (AI processing), RevenueCat and Apple (in-app
-          purchases), and optional Sentry (crash reporting if enabled in production builds).
+          Supabase (database and authentication), Groq, Inc. (AI processing), Google (only if you
+          choose Sign in with Google), Apple (Sign in with Apple and in-app purchases), Open Food
+          Facts (food searches and scanned barcodes are sent to look up nutrition data), RevenueCat
+          (subscription management), and optional Sentry (crash reporting if enabled in production
+          builds). We do not sell your data or share it with advertisers.
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
           <Text className="text-white font-semibold">Children&apos;s privacy{"\n"}</Text>
@@ -58,7 +70,7 @@ export default function PrivacyPolicyScreen() {
         >
           View web version
         </Text>
-        <Text className="text-slate-500 text-xs">Last updated: June 2026</Text>
+        <Text className="text-slate-500 text-xs">Last updated: July 2026</Text>
       </ScrollView>
     </SafeAreaView>
   );
