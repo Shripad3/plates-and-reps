@@ -1,6 +1,7 @@
 import "../global.css";
 import { useEffect } from "react";
-import { Alert, Stack, router } from "expo-router";
+import { Alert } from "react-native";
+import { Stack, router } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
