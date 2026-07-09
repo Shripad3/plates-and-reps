@@ -79,6 +79,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="social/index" />
       <Tabs.Screen name="progress/index" />
       <Tabs.Screen name="workouts/templates" options={{ href: null }} />
+      <Tabs.Screen name="workouts/template-detail" options={{ href: null }} />
       <Tabs.Screen name="workouts/create-template" options={{ href: null }} />
       <Tabs.Screen name="workouts/session-detail" options={{ href: null }} />
       <Tabs.Screen name="profile/index" options={{ href: null }} />

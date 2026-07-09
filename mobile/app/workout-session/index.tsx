@@ -7,6 +7,9 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  InputAccessoryView,
+  Keyboard,
+  Platform,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -32,6 +35,9 @@ import { ExercisePicker } from "@/components/ExercisePicker";
 import { scrollInputIntoView } from "@/lib/scrollInputIntoView";
 
 const ADD_EXERCISE_FOOTER_HEIGHT = 72;
+
+// iOS-only "Done" bar above the number keyboards (number-pad has no return key).
+const KEYBOARD_ACCESSORY_ID = "workout-set-input-accessory";
 
 function ElapsedTimer({ startedAt }: { startedAt: Date }) {
   const [elapsed, setElapsed] = useState(0);
@@ -378,7 +384,7 @@ export default function WorkoutSessionScreen() {
         className="flex-1 px-5"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
         contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
         refreshControl={
@@ -463,6 +469,18 @@ export default function WorkoutSessionScreen() {
           setExerciseQuery("");
         }}
       />
+
+      {Platform.OS === "ios" && (
+        <InputAccessoryView nativeID={KEYBOARD_ACCESSORY_ID}>
+          <View
+            className="flex-row justify-end bg-surface-elevated border-t border-surface-border px-4 py-2"
+          >
+            <TouchableOpacity onPress={() => Keyboard.dismiss()} hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}>
+              <Text className="text-brand-400 font-semibold text-base">Done</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      )}
     </SafeAreaView>
     </SwipeBackGesture>
     </SafeAreaProvider>
@@ -501,6 +519,7 @@ function SetRow({
         variant="compact"
         placeholder="0"
         keyboardType="number-pad"
+        inputAccessoryViewID={KEYBOARD_ACCESSORY_ID}
         value={reps}
         onChangeText={setReps}
         editable={!completed}
@@ -511,6 +530,7 @@ function SetRow({
         variant="compact"
         placeholder="0"
         keyboardType="decimal-pad"
+        inputAccessoryViewID={KEYBOARD_ACCESSORY_ID}
         value={weight}
         onChangeText={setWeight}
         editable={!completed}

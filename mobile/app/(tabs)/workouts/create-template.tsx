@@ -15,6 +15,7 @@ import {
   useWorkoutTemplates,
 } from "@/hooks/useWorkouts";
 import type { Exercise } from "@/types";
+import { getExercisesByIds } from "@/lib/api";
 import { useScreenRefresh } from "@/hooks/useScreenRefresh";
 import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
@@ -57,15 +58,45 @@ export default function CreateTemplateScreen() {
     if (!existing) return;
     setName(existing.name);
     setDescription(existing.description ?? "");
-    setExercises(
-      existing.exercises
-        .filter((e): e is typeof e & { exercise: Exercise } => !!e.exercise)
-        .map((e) => ({
-          exercise: e.exercise,
-          sets: e.sets.length,
-          targetReps: String(e.sets[0]?.target_reps ?? 10),
-        }))
-    );
+
+    let cancelled = false;
+    (async () => {
+      // Prefer the exercise object embedded in the template; fall back to
+      // looking any missing ones up by id (e.g. seed routines store only ids).
+      const byId = new Map<string, Exercise>();
+      existing.exercises.forEach((e) => {
+        if (e.exercise) byId.set(e.exercise_id, e.exercise);
+      });
+      const missingIds = existing.exercises
+        .map((e) => e.exercise_id)
+        .filter((id) => id && !byId.has(id));
+      if (missingIds.length > 0) {
+        try {
+          const fetched = await getExercisesByIds(missingIds);
+          fetched.forEach((ex) => byId.set(ex.id, ex));
+        } catch {
+          // ignore — any exercise without a resolvable definition is skipped
+        }
+      }
+      if (cancelled) return;
+      setExercises(
+        existing.exercises
+          .map((e) => {
+            const exercise = e.exercise ?? byId.get(e.exercise_id);
+            if (!exercise) return null;
+            return {
+              exercise,
+              sets: e.sets.length,
+              targetReps: String(e.sets[0]?.target_reps ?? 10),
+            };
+          })
+          .filter((item): item is TemplateExercise => item !== null)
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [existing?.id]);
 
   const scrollBottomPadding = tabBarPadding + ADD_EXERCISE_FOOTER_HEIGHT;
@@ -157,7 +188,7 @@ export default function CreateTemplateScreen() {
             className="flex-1 px-5"
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
+            keyboardDismissMode="interactive"
             automaticallyAdjustKeyboardInsets
             contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
             refreshControl={

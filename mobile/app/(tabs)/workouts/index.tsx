@@ -32,8 +32,8 @@ export default function WorkoutsScreen() {
   const deleteSession = useDeleteWorkoutSession();
   const clearHistory = useClearWorkoutHistory();
 
-  function startFromTemplate(templateId: string) {
-    router.push({ pathname: "/workout-session", params: { templateId } });
+  function openTemplate(templateId: string) {
+    router.push({ pathname: "/(tabs)/workouts/template-detail", params: { templateId } });
   }
 
   function confirmClearHistory() {
@@ -118,39 +118,23 @@ export default function WorkoutsScreen() {
             />
           ) : (
             templates.slice(0, 4).map((t) => (
-              <Card
-                key={t.id}
-                variant="list-row"
-                className="mb-2 flex-row items-center justify-between"
-              >
+              <Card key={t.id} variant="list-row" className="mb-2">
                 <TouchableOpacity
-                  className="flex-1 mr-3"
-                  onPress={() => startFromTemplate(t.id)}
+                  className="flex-row items-center justify-between"
+                  onPress={() => openTemplate(t.id)}
                   activeOpacity={0.75}
                 >
-                  <Text className="text-white font-medium">{t.name}</Text>
-                  {t.description ? (
-                    <Text className="text-slate-400 text-sm mt-0.5">{t.description}</Text>
-                  ) : null}
-                  <Text className="text-slate-500 text-xs mt-1">
-                    {t.exercises.length} exercise{t.exercises.length !== 1 ? "s" : ""}
-                  </Text>
+                  <View className="flex-1 mr-3">
+                    <Text className="text-white font-medium">{t.name}</Text>
+                    {t.description ? (
+                      <Text className="text-slate-400 text-sm mt-0.5">{t.description}</Text>
+                    ) : null}
+                    <Text className="text-slate-500 text-xs mt-1">
+                      {t.exercises.length} exercise{t.exercises.length !== 1 ? "s" : ""}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
                 </TouchableOpacity>
-                <View className="flex-row items-center gap-3">
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(tabs)/workouts/create-template",
-                        params: { templateId: t.id },
-                      })
-                    }
-                  >
-                    <Ionicons name="create-outline" size={24} color={colors.text.secondary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => startFromTemplate(t.id)}>
-                    <Ionicons name="play-circle" size={28} color={colors.brand[400]} />
-                  </TouchableOpacity>
-                </View>
               </Card>
             ))
           )}

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { ScrollView, View, Text, TouchableOpacity, RefreshControl, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
   useWorkoutTemplates,
@@ -65,7 +66,10 @@ export default function TemplatesScreen() {
                 <TouchableOpacity
                   className="flex-row items-center justify-between"
                   onPress={() =>
-                    router.push({ pathname: "/workout-session", params: { templateId: t.id } })
+                    router.push({
+                      pathname: "/(tabs)/workouts/template-detail",
+                      params: { templateId: t.id },
+                    })
                   }
                 >
                   <View className="flex-1">
@@ -77,20 +81,9 @@ export default function TemplatesScreen() {
                       {t.exercises.length} exercise{t.exercises.length !== 1 ? "s" : ""}
                     </Text>
                   </View>
-                  <Text className="text-brand-400 text-2xl ml-3">▶</Text>
+                  <Ionicons name="chevron-forward" size={20} color={colors.text.muted} />
                 </TouchableOpacity>
-                <View className="flex-row gap-2 mt-3 pt-3 border-t border-surface-elevated">
-                  <TouchableOpacity
-                    className="flex-1 bg-surface-elevated rounded-lg py-2 items-center"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(tabs)/workouts/create-template",
-                        params: { templateId: t.id },
-                      })
-                    }
-                  >
-                    <Text className="text-slate-300 text-sm font-medium">Edit</Text>
-                  </TouchableOpacity>
+                <View className="flex-row mt-3 pt-3 border-t border-surface-elevated">
                   <TouchableOpacity
                     className="flex-1 bg-red-500/15 rounded-lg py-2 items-center"
                     onPress={() => confirmDelete(t.id, t.name)}
