@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import type { WorkoutSession, WorkoutSet, Exercise } from "@/types";
 
-interface ActiveSet {
+export interface ActiveSet {
+  id: string;
   exercise: Exercise;
   setNumber: number;
   reps: number | null;
@@ -11,7 +12,14 @@ interface ActiveSet {
   completed: boolean;
 }
 
-interface ActiveExerciseBlock {
+let setIdCounter = 0;
+/** Stable id for a set row so list reconciliation survives insert/remove/reorder. */
+export function makeSetId(): string {
+  setIdCounter += 1;
+  return `set_${Date.now()}_${setIdCounter}`;
+}
+
+export interface ActiveExerciseBlock {
   exercise: Exercise;
   sets: ActiveSet[];
 }
@@ -25,8 +33,12 @@ interface WorkoutStoreState {
 
   startSession: (session: WorkoutSession, exercises: ActiveExerciseBlock[]) => void;
   addExercise: (exercise: Exercise) => boolean;
+  removeExercise: (exerciseIndex: number) => void;
   completeSet: (exerciseIndex: number, setIndex: number, data: Partial<ActiveSet>) => void;
+  updateSet: (exerciseIndex: number, setIndex: number, data: Partial<ActiveSet>) => void;
   addSet: (exerciseIndex: number) => void;
+  removeSet: (exerciseIndex: number, setIndex: number) => void;
+  reorderExercises: (exercises: ActiveExerciseBlock[]) => void;
   startRestTimer: (seconds: number) => void;
   tickRestTimer: () => void;
   stopRestTimer: () => void;
@@ -53,6 +65,7 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
       exercise,
       sets: [
         {
+          id: makeSetId(),
           exercise,
           setNumber: 1,
           reps: null,
@@ -67,6 +80,12 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
     return true;
   },
 
+  // Session-only: drops the exercise from this workout's copy, never the template.
+  removeExercise: (exerciseIndex) =>
+    set((state) => ({
+      activeExercises: state.activeExercises.filter((_, i) => i !== exerciseIndex),
+    })),
+
   completeSet: (exerciseIndex, setIndex, data) => {
     set((state) => {
       const exercises = [...state.activeExercises];
@@ -80,6 +99,22 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
     });
   },
 
+  // Commit edited reps/weight without changing completion state (fields stay editable).
+  updateSet: (exerciseIndex, setIndex, data) => {
+    set((state) => {
+      const exercises = [...state.activeExercises];
+      const block = exercises[exerciseIndex];
+      if (!block) return {};
+      exercises[exerciseIndex] = {
+        ...block,
+        sets: block.sets.map((s, i) => (i === setIndex ? { ...s, ...data } : s)),
+      };
+      return { activeExercises: exercises };
+    });
+  },
+
+  reorderExercises: (exercises) => set({ activeExercises: exercises }),
+
   addSet: (exerciseIndex) => {
     set((state) => {
       const exercises = [...state.activeExercises];
@@ -91,11 +126,25 @@ export const useWorkoutStore = create<WorkoutStoreState>((set, get) => ({
           ...block.sets,
           {
             ...lastSet,
+            id: makeSetId(),
             setNumber: block.sets.length + 1,
             completed: false,
           },
         ],
       };
+      return { activeExercises: exercises };
+    });
+  },
+
+  removeSet: (exerciseIndex, setIndex) => {
+    set((state) => {
+      const exercises = [...state.activeExercises];
+      const block = exercises[exerciseIndex];
+      if (!block || block.sets.length <= 1) return {}; // keep at least 1 set
+      const nextSets = block.sets
+        .filter((_, i) => i !== setIndex)
+        .map((s, i) => ({ ...s, setNumber: i + 1 })); // renumber sequentially
+      exercises[exerciseIndex] = { ...block, sets: nextSets };
       return { activeExercises: exercises };
     });
   },

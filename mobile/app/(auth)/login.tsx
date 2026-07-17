@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,6 +13,7 @@ import { AppTextInput } from "@/components/AppTextInput";
 import { AppLogo } from "@/components/AppLogo";
 import { Button } from "@/components/ui/Button";
 import { SocialAuthButtons } from "@/components/SocialAuthButtons";
+import { KeyboardAwareScreen } from "@/components/KeyboardAwareScreen";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -66,12 +66,15 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface">
-      <ScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets
-        contentContainerClassName="flex-grow px-6 justify-center py-12"
+      <KeyboardAwareScreen
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          paddingHorizontal: 24,
+          paddingTop: 48,
+          paddingBottom: 48,
+        }}
       >
         <View className="mb-10 items-center">
           <AppLogo />
@@ -132,7 +135,7 @@ export default function LoginScreen() {
             </Link>
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScreen>
     </SafeAreaView>
   );
 }

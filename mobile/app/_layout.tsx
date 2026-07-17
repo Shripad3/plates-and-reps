@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import { Stack, router } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { StatusBar } from "expo-status-bar";
 import * as Linking from "expo-linking";
 import { supabase } from "@/lib/supabase";
@@ -104,6 +105,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView className="flex-1">
+      <KeyboardProvider>
       <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <StatusBar style="light" />
@@ -117,18 +119,21 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="chat/index"
-            options={{ presentation: "modal", headerShown: false }}
-          />
+          {/* Content pages — pushed as cards so they route/back like real pages. */}
+          <Stack.Screen name="chat/index" options={{ headerShown: false }} />
+          <Stack.Screen name="ai-plan/index" options={{ headerShown: false }} />
+          <Stack.Screen name="meal-plan/index" options={{ headerShown: false }} />
+          {/* Live workout stays full-screen so a stray swipe can't drop you mid-session. */}
           <Stack.Screen
             name="workout-session/index"
             options={{ presentation: "fullScreenModal", headerShown: false }}
           />
+          {/* Paywall stays a modal (standard purchase-sheet pattern). */}
           <Stack.Screen
             name="paywall"
             options={{ presentation: "modal", headerShown: false }}
           />
+          {/* Onboarding tour stays full-screen with no back. */}
           <Stack.Screen
             name="tour"
             options={{ presentation: "fullScreenModal", headerShown: false, gestureEnabled: false }}
@@ -138,6 +143,7 @@ export default function RootLayout() {
         </Stack>
       </QueryClientProvider>
       </ErrorBoundary>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

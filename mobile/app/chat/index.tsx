@@ -426,7 +426,7 @@ export default function ChatScreen() {
               onPress={() => router.back()}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="close" size={22} color={colors.text.secondary} />
+              <Ionicons name="chevron-back" size={24} color={colors.text.secondary} />
             </TouchableOpacity>
             <CoachMonogram size={36} />
             <View className="flex-1">
@@ -510,7 +510,7 @@ export default function ChatScreen() {
               onPress={() => router.back()}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="close" size={22} color={colors.text.secondary} />
+              <Ionicons name="chevron-back" size={24} color={colors.text.secondary} />
             </TouchableOpacity>
             <CoachMonogram size={36} />
             <View className="flex-1">
@@ -554,7 +554,7 @@ export default function ChatScreen() {
               onPress={() => router.back()}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="close" size={22} color={colors.text.secondary} />
+              <Ionicons name="chevron-back" size={24} color={colors.text.secondary} />
             </TouchableOpacity>
             <CoachMonogram size={36} />
             <View className="flex-1">

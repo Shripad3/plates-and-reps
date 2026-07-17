@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Alert } from "react-native";
+import { View, Text, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { AppTextInput } from "@/components/AppTextInput";
 import { Button } from "@/components/ui/Button";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { KeyboardAwareScreen } from "@/components/KeyboardAwareScreen";
 
 export default function ResetPasswordScreen() {
   const [password, setPassword] = useState("");
@@ -39,11 +40,9 @@ export default function ResetPasswordScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       <ScreenHeader title="New password" subtitle="Choose a new password for your account" showBack={false} />
-      <ScrollView
-        className="flex-1 px-6"
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
-        contentContainerClassName="pt-4 pb-12"
+      <KeyboardAwareScreen
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 48 }}
       >
         <View className="gap-4">
           <View>
@@ -72,7 +71,7 @@ export default function ResetPasswordScreen() {
             className="mt-2"
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScreen>
     </SafeAreaView>
   );
 }

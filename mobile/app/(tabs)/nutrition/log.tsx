@@ -13,9 +13,9 @@ import { useFoodSearch, useLogFood } from "@/hooks/useNutrition";
 import type { Food } from "@/types";
 import type { MealType } from "@/constants";
 import { useScreenRefresh } from "@/hooks/useScreenRefresh";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { AppTextInput } from "@/components/AppTextInput";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
-import { AnimatedKeyboardAvoidingView } from "@/components/AnimatedKeyboardAvoidingView";
 import { colors } from "@/lib/theme";
 
 export default function LogFoodScreen() {
@@ -61,7 +61,7 @@ export default function LogFoodScreen() {
   return (
     <SwipeBackGesture>
     <SafeAreaView className="flex-1 bg-surface">
-      <AnimatedKeyboardAvoidingView className="flex-1">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {/* Header */}
         <View className="px-5 pt-4 pb-3 flex-row items-center gap-3">
           <TouchableOpacity onPress={() => router.back()}>
@@ -157,7 +157,7 @@ export default function LogFoodScreen() {
             ) : null
           }
         />
-      </AnimatedKeyboardAvoidingView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
     </SwipeBackGesture>
   );

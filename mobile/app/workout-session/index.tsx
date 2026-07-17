@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   Alert,
   ActivityIndicator,
   RefreshControl,
@@ -12,8 +11,10 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from "react-native-draggable-flatlist";
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useWorkoutStore } from "@/stores/workoutStore";
+import { useWorkoutStore, makeSetId, type ActiveExerciseBlock } from "@/stores/workoutStore";
 import {
   useCreateWorkoutSession,
   useCompleteWorkoutSession,
@@ -32,7 +33,6 @@ import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { FinishWorkoutModal } from "@/components/FinishWorkoutModal";
 import { colors } from "@/lib/theme";
 import { ExercisePicker } from "@/components/ExercisePicker";
-import { scrollInputIntoView } from "@/lib/scrollInputIntoView";
 
 const ADD_EXERCISE_FOOTER_HEIGHT = 72;
 
@@ -66,7 +66,9 @@ function buildExerciseBlocks(
   }>,
   exerciseMap: Map<string, Exercise>
 ) {
-  return templateExercises
+  // Copy before sorting — .sort() mutates in place, and templateExercises is the
+  // cached base routine's array. Sorting it directly would reorder the template.
+  return [...templateExercises]
     .sort((a, b) => a.order - b.order)
     .flatMap((te) => {
       const exercise = exerciseMap.get(te.exercise_id);
@@ -76,6 +78,7 @@ function buildExerciseBlocks(
       const sets = Array.from({ length: setCount }, (_, i) => {
         const templateSet = te.sets?.[i];
         return {
+          id: makeSetId(),
           exercise,
           setNumber: i + 1,
           reps: templateSet?.target_reps ?? null,
@@ -98,8 +101,12 @@ export default function WorkoutSessionScreen() {
     startedAt,
     startSession,
     addExercise,
+    removeExercise,
     completeSet,
+    updateSet,
     addSet,
+    removeSet,
+    reorderExercises,
     endSession,
   } = useWorkoutStore();
 
@@ -125,7 +132,6 @@ export default function WorkoutSessionScreen() {
   const finalizedRef = useRef(false);
   const deleteSessionRef = useRef(deleteSession.mutate);
   deleteSessionRef.current = deleteSession.mutate;
-  const scrollRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
   const { keyboardHeight } = useKeyboardInset(!showExercisePicker);
 
@@ -344,6 +350,19 @@ export default function WorkoutSessionScreen() {
     });
   }
 
+  // Persist an edited value without marking the set complete — keeps fields editable.
+  function handleCommitSet(exerciseIdx: number, setIdx: number, reps: number, weight_kg: number) {
+    updateSet(exerciseIdx, setIdx, { reps, weight_kg });
+  }
+
+  // Session-only removal — confirms, then drops the exercise from this workout's copy.
+  function handleRemoveExercise(exerciseIdx: number, name: string) {
+    Alert.alert("Remove exercise?", `Remove ${name} from this workout? Your saved routine won't change.`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Remove", style: "destructive", onPress: () => removeExercise(exerciseIdx) },
+    ]);
+  }
+
   if (isInitializing) {
     return (
       <SafeAreaProvider>
@@ -379,57 +398,80 @@ export default function WorkoutSessionScreen() {
       </View>
 
       <View className="flex-1">
-      <ScrollView
-        ref={scrollRef}
-        className="flex-1 px-5"
-        showsVerticalScrollIndicator={false}
+      <DraggableFlatList
+        data={activeExercises}
+        keyExtractor={(block) => block.exercise.id}
+        onDragEnd={({ data }) => reorderExercises(data)}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets
-        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: scrollBottomPadding }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[400]} />
         }
-      >
-        {/* Exercise blocks */}
-        {activeExercises.map((block, exIdx) => (
-          <View key={`${block.exercise.id}-${exIdx}`} className="bg-surface-card rounded-2xl p-4 mb-4">
-            <Text className="text-white font-bold text-base mb-3">{block.exercise.name}</Text>
+        renderItem={({ item: block, drag, isActive, getIndex }: RenderItemParams<ActiveExerciseBlock>) => {
+          const exIdx = getIndex() ?? 0;
+          return (
+            <ScaleDecorator>
+              <View className={`bg-surface-card rounded-2xl p-4 mb-4 ${isActive ? "opacity-90" : ""}`}>
+                <View className="flex-row items-center mb-3">
+                  <TouchableOpacity
+                    onLongPress={drag}
+                    disabled={isActive}
+                    delayLongPress={150}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="pr-2"
+                  >
+                    <Ionicons name="reorder-three-outline" size={22} color={colors.text.muted} />
+                  </TouchableOpacity>
+                  <Text className="text-white font-bold text-base flex-1">{block.exercise.name}</Text>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveExercise(exIdx, block.exercise.name)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="pl-2"
+                    accessibilityLabel={`Remove ${block.exercise.name}`}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={colors.text.muted} />
+                  </TouchableOpacity>
+                </View>
 
-            {/* Set rows */}
-            <View className="mb-2">
-              <View className="flex-row gap-2 mb-2">
-                <Text className="text-slate-500 text-xs w-8">Set</Text>
-                <Text className="text-slate-500 text-xs flex-1 text-center">Reps</Text>
-                <Text className="text-slate-500 text-xs flex-1 text-center">Weight (kg)</Text>
-                <View className="w-16" />
+                {/* Set rows */}
+                <View className="mb-2">
+                  <View className="flex-row gap-2 mb-2">
+                    <Text className="text-slate-500 text-xs w-8">Set</Text>
+                    <Text className="text-slate-500 text-xs flex-1 text-center">Reps</Text>
+                    <Text className="text-slate-500 text-xs flex-1 text-center">Weight (kg)</Text>
+                    <View className="w-16" />
+                    <View className="w-7" />
+                  </View>
+
+                  {block.sets.map((set, setIdx) => (
+                    <SetRow
+                      key={set.id}
+                      setNumber={setIdx + 1}
+                      defaultReps={set.reps}
+                      defaultWeight={set.weight_kg}
+                      completed={set.completed}
+                      canRemove={block.sets.length > 1}
+                      onRemove={() => removeSet(exIdx, setIdx)}
+                      onCommit={(reps, weight) => handleCommitSet(exIdx, setIdx, reps, weight)}
+                      onComplete={(reps, weight) => handleCompleteSet(exIdx, setIdx, reps, weight)}
+                    />
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  className="border border-dashed border-surface-elevated rounded-xl py-2.5 items-center mt-1"
+                  onPress={() => addSet(exIdx)}
+                >
+                  <Text className="text-slate-400 text-sm">+ Add Set</Text>
+                </TouchableOpacity>
               </View>
-
-              {block.sets.map((set, setIdx) => (
-                <SetRow
-                  key={setIdx}
-                  setNumber={setIdx + 1}
-                  defaultReps={set.reps}
-                  defaultWeight={set.weight_kg}
-                  completed={set.completed}
-                  onInputFocus={(target) => scrollInputIntoView(scrollRef, target)}
-                  onComplete={(reps, weight) =>
-                    handleCompleteSet(exIdx, setIdx, reps, weight)
-                  }
-                />
-              ))}
-            </View>
-
-            <TouchableOpacity
-              className="border border-dashed border-surface-elevated rounded-xl py-2.5 items-center mt-1"
-              onPress={() => addSet(exIdx)}
-            >
-              <Text className="text-slate-400 text-sm">+ Add Set</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-
-      </ScrollView>
+            </ScaleDecorator>
+          );
+        }}
+      />
 
       {keyboardHeight === 0 && (
         <View className="px-5" style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
@@ -492,18 +534,25 @@ function SetRow({
   defaultReps,
   defaultWeight,
   completed,
-  onInputFocus,
+  canRemove,
+  onRemove,
+  onCommit,
   onComplete,
 }: {
   setNumber: number;
   defaultReps: number | null;
   defaultWeight: number | null;
   completed: boolean;
-  onInputFocus: (target: number) => void;
+  canRemove: boolean;
+  onRemove: () => void;
+  onCommit: (reps: number, weight: number) => void;
   onComplete: (reps: number, weight: number) => void;
 }) {
   const [reps, setReps] = useState(String(defaultReps ?? ""));
   const [weight, setWeight] = useState(String(defaultWeight ?? ""));
+
+  // Persist edits to the store on blur so nothing is discarded, even without pressing Done.
+  const commit = () => onCommit(parseInt(reps) || 0, parseFloat(weight) || 0);
 
   return (
     <View
@@ -522,8 +571,7 @@ function SetRow({
         inputAccessoryViewID={KEYBOARD_ACCESSORY_ID}
         value={reps}
         onChangeText={setReps}
-        editable={!completed}
-        onFocus={(event) => onInputFocus(event.nativeEvent.target)}
+        onEndEditing={commit}
       />
       <AppTextInput
         className="flex-1 bg-surface-elevated text-white rounded-lg text-center"
@@ -533,23 +581,30 @@ function SetRow({
         inputAccessoryViewID={KEYBOARD_ACCESSORY_ID}
         value={weight}
         onChangeText={setWeight}
-        editable={!completed}
-        onFocus={(event) => onInputFocus(event.nativeEvent.target)}
+        onEndEditing={commit}
       />
       <TouchableOpacity
         className={`w-16 py-2 rounded-lg items-center ${
           completed ? "bg-green-500/30" : "bg-brand-500"
         }`}
-        onPress={() => {
-          if (completed) return;
-          onComplete(parseInt(reps) || 0, parseFloat(weight) || 0);
-        }}
-        disabled={completed}
+        onPress={() => onComplete(parseInt(reps) || 0, parseFloat(weight) || 0)}
       >
         <Text className={`text-sm font-semibold ${completed ? "text-green-400" : "text-white"}`}>
           {completed ? "✓" : "Done"}
         </Text>
       </TouchableOpacity>
+      {canRemove ? (
+        <TouchableOpacity
+          onPress={onRemove}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="w-7 items-center justify-center"
+          accessibilityLabel={`Remove set ${setNumber}`}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.danger} />
+        </TouchableOpacity>
+      ) : (
+        <View className="w-7" />
+      )}
     </View>
   );
 }

@@ -1,5 +1,6 @@
-import { useState, useMemo, type ReactNode } from "react";
-import { ScrollView, View, Text, TouchableOpacity, Alert, RefreshControl } from "react-native";
+import { useState, useMemo } from "react";
+import { View, Text, TouchableOpacity, Alert, RefreshControl } from "react-native";
+import { KeyboardAwareScreen } from "@/components/KeyboardAwareScreen";
 import { TabSafeArea } from "@/components/TabSafeArea";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,13 +41,25 @@ function validateWeightKg(weight: number): string | null {
   return null;
 }
 
+// Length-responsive base size so a wide value fits the narrow card even on
+// Android; adjustsFontSizeToFit then shrinks further if still needed.
+function statValueFontSize(value: string): number {
+  const len = value.length;
+  if (len <= 5) return 30; // "80kg", "78kg", "—"
+  if (len === 6) return 26; // "-1.4kg"
+  if (len === 7) return 23; // "-14.4kg", "100.5kg"
+  return 20;
+}
+
 function StatCard({
   label,
   value,
+  valueColor = colors.text.primary,
   onEdit,
 }: {
   label: string;
-  value: ReactNode;
+  value: string;
+  valueColor?: string;
   onEdit?: () => void;
 }) {
   const inner = (
@@ -55,13 +68,20 @@ function StatCard({
         <Text style={{ fontSize: fontSize.caption, color: colors.text.muted }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{label}</Text>
         {onEdit ? <Ionicons name="pencil" size={12} color={colors.text.muted} /> : null}
       </View>
-      {typeof value === "string" ? (
-        <Text style={{ fontSize: 30, fontWeight: "800", color: colors.text.primary, letterSpacing: -0.5 }}>
-          {value}
-        </Text>
-      ) : (
-        value
-      )}
+      <Text
+        style={{
+          fontSize: statValueFontSize(value),
+          fontWeight: "800",
+          color: valueColor,
+          letterSpacing: -0.5,
+          width: "100%",
+        }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+      >
+        {value}
+      </Text>
     </>
   );
 
@@ -202,9 +222,8 @@ export default function ProgressScreen() {
 
   return (
     <TabSafeArea>
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAwareScreen
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: tabBarPadding }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[400]} />
@@ -253,23 +272,13 @@ export default function ProgressScreen() {
           {weightChange !== null && (
             <StatCard
               label="90-day change"
-              value={
-                <Text
-                  style={{
-                    fontSize: 30,
-                    fontWeight: "800",
-                    letterSpacing: -0.5,
-                    color:
-                      weightChange < 0
-                        ? colors.success
-                        : weightChange > 0
-                          ? colors.danger
-                          : colors.text.muted,
-                  }}
-                >
-                  {weightChange > 0 ? "+" : ""}
-                  {weightChange.toFixed(1)}kg
-                </Text>
+              value={`${weightChange > 0 ? "+" : ""}${weightChange.toFixed(1)}kg`}
+              valueColor={
+                weightChange < 0
+                  ? colors.success
+                  : weightChange > 0
+                    ? colors.danger
+                    : colors.text.muted
               }
             />
           )}
@@ -312,7 +321,7 @@ export default function ProgressScreen() {
             description="Log your weight daily to visualize progress over time."
           />
         )}
-      </ScrollView>
+      </KeyboardAwareScreen>
 
       <EditValueModal
         visible={editModalVisible}

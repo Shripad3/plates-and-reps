@@ -88,6 +88,25 @@ export default function WorkoutsScreen() {
         </Section>
 
         <Section className="mt-6">
+          <TouchableOpacity
+            style={{ borderRadius: 16 }}
+            className="bg-surface-card border border-brand-500/40 p-4 flex-row items-center justify-between"
+            onPress={() => router.push("/ai-plan")}
+            activeOpacity={0.85}
+          >
+            <View className="flex-1 mr-3">
+              <Text className="text-white text-base font-bold">Generate an AI plan</Text>
+              <Text className="text-slate-400 text-sm mt-0.5">
+                A personalized multi-week program built around your goal.
+              </Text>
+            </View>
+            <View className="w-10 h-10 rounded-xl bg-brand-500/15 items-center justify-center">
+              <Ionicons name="sparkles" size={20} color={colors.brand[400]} />
+            </View>
+          </TouchableOpacity>
+        </Section>
+
+        <Section className="mt-6">
           <View className="flex-row items-center justify-between mb-3">
             <SectionTitle>My routines</SectionTitle>
             <View className="flex-row items-center gap-1 -mt-3">

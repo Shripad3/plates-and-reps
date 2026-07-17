@@ -1,13 +1,14 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   Alert,
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from "react-native-draggable-flatlist";
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import {
   useCreateWorkoutTemplate,
@@ -22,7 +23,6 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { AppTextInput } from "@/components/AppTextInput";
 import { ExercisePicker } from "@/components/ExercisePicker";
-import { scrollInputIntoView } from "@/lib/scrollInputIntoView";
 import { colors } from "@/lib/theme";
 
 interface TemplateExercise {
@@ -46,7 +46,6 @@ export default function CreateTemplateScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const tabBarPadding = useTabBarScrollPadding();
   const { keyboardHeight } = useKeyboardInset(!showPicker);
-  const scrollRef = useRef<ScrollView>(null);
 
   const refreshKeys = useMemo(() => [["exercises"]] as const, []);
   const { refreshing, onRefresh } = useScreenRefresh([...refreshKeys]);
@@ -112,9 +111,6 @@ export default function CreateTemplateScreen() {
     setExerciseQuery("");
   }
 
-  function removeExercise(idx: number) {
-    setExercises((prev) => prev.filter((_, i) => i !== idx));
-  }
 
   function closePicker() {
     setShowPicker(false);
@@ -183,95 +179,121 @@ export default function CreateTemplateScreen() {
         </View>
 
         <View className="flex-1">
-        <ScrollView
-            ref={scrollRef}
-            className="flex-1 px-5"
-            showsVerticalScrollIndicator={false}
+        <DraggableFlatList
+            data={exercises}
+            keyExtractor={(item) => item.exercise.id}
+            onDragEnd={({ data }) => setExercises(data)}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
             automaticallyAdjustKeyboardInsets
-            contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: scrollBottomPadding }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[400]} />
             }
-          >
-            <View className="mb-4">
-              <Text className="text-slate-400 text-sm mb-1.5">Routine Name</Text>
-              <AppTextInput
-                placeholder="e.g. Push Day"
-                placeholderTextColor={colors.text.muted}
-                value={name}
-                onChangeText={setName}
-                onFocus={(event) => scrollInputIntoView(scrollRef, event.nativeEvent.target)}
-              />
-            </View>
-
-            <View className="mb-5">
-              <Text className="text-slate-400 text-sm mb-1.5">Description (optional)</Text>
-              <AppTextInput
-                placeholder="Notes about this routine"
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                onFocus={(event) => scrollInputIntoView(scrollRef, event.nativeEvent.target)}
-              />
-            </View>
-
-            <Text className="text-white font-semibold text-base mb-3">Exercises</Text>
-            {exercises.map((item, idx) => (
-              <View key={`${item.exercise.id}-${idx}`} className="bg-surface-card rounded-xl p-4 mb-2">
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-white font-medium flex-1">{item.exercise.name}</Text>
-                  <TouchableOpacity onPress={() => removeExercise(idx)}>
-                    <Text className="text-red-400 text-sm">Remove</Text>
-                  </TouchableOpacity>
+            ListHeaderComponent={
+              <View>
+                <View className="mb-4">
+                  <Text className="text-slate-400 text-sm mb-1.5">Routine Name</Text>
+                  <AppTextInput
+                    placeholder="e.g. Push Day"
+                    placeholderTextColor={colors.text.muted}
+                    value={name}
+                    onChangeText={setName}
+                  />
                 </View>
-                <View className="flex-row gap-4 items-center">
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-slate-400 text-sm">Sets:</Text>
-                    <TouchableOpacity
-                      className="w-11 h-11 bg-surface-elevated rounded-lg items-center justify-center"
-                      onPress={() =>
-                        setExercises((prev) =>
-                          prev.map((e, i) =>
-                            i === idx ? { ...e, sets: Math.max(1, e.sets - 1) } : e
-                          )
-                        )
-                      }
-                    >
-                      <Text className="text-white font-bold">−</Text>
-                    </TouchableOpacity>
-                    <Text className="text-white font-semibold w-4 text-center">{item.sets}</Text>
-                    <TouchableOpacity
-                      className="w-11 h-11 bg-surface-elevated rounded-lg items-center justify-center"
-                      onPress={() =>
-                        setExercises((prev) =>
-                          prev.map((e, i) => (i === idx ? { ...e, sets: e.sets + 1 } : e))
-                        )
-                      }
-                    >
-                      <Text className="text-white font-bold">+</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-slate-400 text-sm">Reps:</Text>
-                    <AppTextInput
-                      className="bg-surface-elevated text-white rounded-lg w-16 text-center"
-                      variant="compact"
-                      value={item.targetReps}
-                      onChangeText={(v) =>
-                        setExercises((prev) =>
-                          prev.map((e, i) => (i === idx ? { ...e, targetReps: v } : e))
-                        )
-                      }
-                      keyboardType="number-pad"
-                      onFocus={(event) => scrollInputIntoView(scrollRef, event.nativeEvent.target)}
-                    />
-                  </View>
+
+                <View className="mb-5">
+                  <Text className="text-slate-400 text-sm mb-1.5">Description (optional)</Text>
+                  <AppTextInput
+                    placeholder="Notes about this routine"
+                    value={description}
+                    onChangeText={setDescription}
+                    multiline
+                  />
                 </View>
+
+                <Text className="text-white font-semibold text-base mb-3">Exercises</Text>
               </View>
-            ))}
-          </ScrollView>
+            }
+            ListEmptyComponent={
+              <Text className="text-slate-500 text-sm mb-2">
+                No exercises yet. Tap “Add Exercise” below to start.
+              </Text>
+            }
+            renderItem={({ item, drag, isActive }: RenderItemParams<TemplateExercise>) => {
+              const exId = item.exercise.id;
+              return (
+                <ScaleDecorator>
+                  <View className={`bg-surface-card rounded-xl p-4 mb-2 ${isActive ? "opacity-90" : ""}`}>
+                    <View className="flex-row items-center justify-between mb-2">
+                      <View className="flex-row items-center flex-1">
+                        <TouchableOpacity
+                          onLongPress={drag}
+                          disabled={isActive}
+                          delayLongPress={150}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          className="pr-2"
+                        >
+                          <Ionicons name="reorder-three-outline" size={22} color={colors.text.muted} />
+                        </TouchableOpacity>
+                        <Text className="text-white font-medium flex-1">{item.exercise.name}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setExercises((prev) => prev.filter((e) => e.exercise.id !== exId))
+                        }
+                      >
+                        <Text className="text-red-400 text-sm">Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View className="flex-row gap-4 items-center">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-slate-400 text-sm">Sets:</Text>
+                        <TouchableOpacity
+                          className="w-11 h-11 bg-surface-elevated rounded-lg items-center justify-center"
+                          onPress={() =>
+                            setExercises((prev) =>
+                              prev.map((e) =>
+                                e.exercise.id === exId ? { ...e, sets: Math.max(1, e.sets - 1) } : e
+                              )
+                            )
+                          }
+                        >
+                          <Text className="text-white font-bold">−</Text>
+                        </TouchableOpacity>
+                        <Text className="text-white font-semibold w-4 text-center">{item.sets}</Text>
+                        <TouchableOpacity
+                          className="w-11 h-11 bg-surface-elevated rounded-lg items-center justify-center"
+                          onPress={() =>
+                            setExercises((prev) =>
+                              prev.map((e) => (e.exercise.id === exId ? { ...e, sets: e.sets + 1 } : e))
+                            )
+                          }
+                        >
+                          <Text className="text-white font-bold">+</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-slate-400 text-sm">Reps:</Text>
+                        <AppTextInput
+                          className="bg-surface-elevated text-white rounded-lg w-16 text-center"
+                          variant="compact"
+                          value={item.targetReps}
+                          onChangeText={(v) =>
+                            setExercises((prev) =>
+                              prev.map((e) => (e.exercise.id === exId ? { ...e, targetReps: v } : e))
+                            )
+                          }
+                          keyboardType="number-pad"
+                        />
+                      </View>
+                    </View>
+                  </View>
+                </ScaleDecorator>
+              );
+            }}
+          />
 
           {keyboardHeight === 0 && (
             <View className="px-5" style={{ paddingBottom: tabBarPadding }}>

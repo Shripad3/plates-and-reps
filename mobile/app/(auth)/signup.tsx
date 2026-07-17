@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  ScrollView,
   Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { colors } from "@/lib/theme";
 import { SocialAuthButtons } from "@/components/SocialAuthButtons";
+import { KeyboardAwareScreen } from "@/components/KeyboardAwareScreen";
 
 export default function SignupScreen() {
   const [email, setEmail] = useState("");
@@ -81,12 +81,9 @@ export default function SignupScreen() {
   return (
     <SafeAreaView className="flex-1 bg-surface">
       <ScreenHeader title="Create account" subtitle="Set up your profile" showBack={false} />
-      <ScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets
-        contentContainerClassName="flex-grow px-6 pb-12"
+      <KeyboardAwareScreen
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingBottom: 48 }}
       >
         <View className="gap-4 mt-2">
           <View>
@@ -164,7 +161,7 @@ export default function SignupScreen() {
             </Link>
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScreen>
     </SafeAreaView>
   );
 }
