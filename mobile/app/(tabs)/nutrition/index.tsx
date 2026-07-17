@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollView, View, Text, TouchableOpacity, RefreshControl, Alert, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { TabSafeArea } from "@/components/TabSafeArea";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import {
   useNutritionLogs,
   useDeleteNutritionLog,
@@ -238,6 +238,23 @@ export default function NutritionScreen() {
             variant="compact"
           />
         </Card>
+
+        <TouchableOpacity
+          style={{ borderRadius: 16 }}
+          className="bg-surface-card border border-brand-500/40 p-4 mb-5 flex-row items-center justify-between"
+          onPress={() => router.push("/meal-plan" as Href)}
+          activeOpacity={0.85}
+        >
+          <View className="flex-1 mr-3">
+            <Text className="text-white text-base font-bold">Generate an AI meal plan</Text>
+            <Text className="text-slate-400 text-sm mt-0.5">
+              A personalized plan you can log with one tap.
+            </Text>
+          </View>
+          <View className="w-10 h-10 rounded-xl bg-brand-500/15 items-center justify-center">
+            <Ionicons name="sparkles" size={20} color={colors.brand[400]} />
+          </View>
+        </TouchableOpacity>
 
         {recentFoods.length > 0 && selectedDate === today ? (
           <View className="mb-5">

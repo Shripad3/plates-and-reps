@@ -14,6 +14,9 @@ export interface UserProfile {
   is_premium: boolean;
   premium_until: string | null;
   created_at: string;
+  // AI plan generation
+  injury_info?: import("@/lib/aiPlan").InjuryInfo | null;
+  diet_info?: import("@/lib/mealPlan").DietInfo | null;
 }
 
 // Safe, public-facing subset of UserProfile (backed by the public_profiles

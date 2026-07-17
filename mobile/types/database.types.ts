@@ -84,6 +84,39 @@ export type Database = {
           },
         ]
       }
+      ai_trials: {
+        Row: {
+          feature: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          feature: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          feature?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_trials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_trials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage_events: {
         Row: {
           created_at: string
@@ -589,6 +622,7 @@ export type Database = {
       }
       foods: {
         Row: {
+          allergens: string[] | null
           barcode: string | null
           brand: string | null
           calories_per_serving: number
@@ -608,6 +642,7 @@ export type Database = {
           sugar_g: number | null
         }
         Insert: {
+          allergens?: string[] | null
           barcode?: string | null
           brand?: string | null
           calories_per_serving: number
@@ -627,6 +662,7 @@ export type Database = {
           sugar_g?: number | null
         }
         Update: {
+          allergens?: string[] | null
           barcode?: string | null
           brand?: string | null
           calories_per_serving?: number
@@ -656,6 +692,48 @@ export type Database = {
           {
             foreignKeyName: "foods_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_plans: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          plan: Json
+          target_calories: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          plan: Json
+          target_calories?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          plan?: Json
+          target_calories?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plans_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -953,9 +1031,11 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           date_of_birth: string | null
+          diet_info: Json | null
           display_name: string
           height_cm: number | null
           id: string
+          injury_info: Json | null
           is_premium: boolean
           premium_until: string | null
           sex: string | null
@@ -967,9 +1047,11 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           date_of_birth?: string | null
+          diet_info?: Json | null
           display_name: string
           height_cm?: number | null
           id: string
+          injury_info?: Json | null
           is_premium?: boolean
           premium_until?: string | null
           sex?: string | null
@@ -981,9 +1063,11 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           date_of_birth?: string | null
+          diet_info?: Json | null
           display_name?: string
           height_cm?: number | null
           id?: string
+          injury_info?: Json | null
           is_premium?: boolean
           premium_until?: string | null
           sex?: string | null
@@ -1267,6 +1351,10 @@ export type Database = {
       }
     }
     Functions: {
+      consume_ai_usage: {
+        Args: { p_feature: string; p_limit: number; p_user_id: string }
+        Returns: boolean
+      }
       record_food_search_term: { Args: { p_term: string }; Returns: undefined }
       search_exercises: {
         Args: {
@@ -1305,6 +1393,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_ai_trial: {
+        Args: { p_feature: string; p_user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

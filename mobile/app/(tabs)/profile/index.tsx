@@ -42,6 +42,8 @@ import { navigateToPaywall } from "@/lib/navigateToPaywall";
 import { EditValueModal } from "@/components/EditValueModal";
 import { EditPickerModal } from "@/components/EditPickerModal";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { DietEditModal } from "@/components/DietEditModal";
+import type { DietInfo } from "@/lib/mealPlan";
 import { colors } from "@/lib/theme";
 import { todayLocal } from "@/lib/dates";
 
@@ -131,6 +133,7 @@ export default function ProfileScreen() {
   const queryClient = useQueryClient();
   const { isPremium } = usePremium();
   const [editField, setEditField] = useState<EditField>(null);
+  const [dietModalOpen, setDietModalOpen] = useState(false);
 
   const { data: subscriptionDetails } = useQuery({
     queryKey: ["subscription-details"],
@@ -686,6 +689,22 @@ export default function ProfileScreen() {
           </Section>
         ) : null}
 
+        {(() => {
+          const diet = (profile?.diet_info as DietInfo | null) ?? null;
+          const patternLabel = diet?.status === "provided" && diet.pattern
+            ? diet.pattern.charAt(0).toUpperCase() + diet.pattern.slice(1)
+            : "Not set";
+          const allergyText = (diet?.allergies ?? []).length
+            ? (diet?.allergies ?? []).map((a) => a.replace(/_/g, " ")).join(", ")
+            : "None";
+          return (
+            <Section title="Diet & allergies">
+              <InfoRow label="Dietary pattern" value={patternLabel} onPress={() => setDietModalOpen(true)} />
+              <InfoRow label="Allergies" value={allergyText} onPress={() => setDietModalOpen(true)} />
+            </Section>
+          );
+        })()}
+
         <Section title="Help">
           <InfoRow
             label="App guide"
@@ -753,6 +772,12 @@ export default function ProfileScreen() {
           onSelect={handlePickerSelect}
         />
       ) : null}
+
+      <DietEditModal
+        visible={dietModalOpen}
+        initial={(profile?.diet_info as DietInfo | null) ?? null}
+        onClose={() => setDietModalOpen(false)}
+      />
     </TabSafeArea>
   );
 }

@@ -24,6 +24,62 @@ export const FREE_TIER = {
   WORKOUT_PLAN_MONTHLY: 1,
 } as const;
 
+// AI plan generation — user-facing config. Keep TRIAL_DAYS in sync with the
+// backend (_shared/aiConfig.ts); the backend is authoritative for entitlement.
+export const AI_PLAN = {
+  TRIAL_DAYS: 7,
+  DEFAULT_PLAN_WEEKS: 4,
+  GOALS: [
+    { value: "build_muscle", label: "Build muscle" },
+    { value: "lose_fat", label: "Lose fat" },
+    { value: "strength", label: "Strength" },
+    { value: "general_fitness", label: "General fitness" },
+  ],
+  EXPERIENCE_LEVELS: [
+    { value: "beginner", label: "Beginner" },
+    { value: "intermediate", label: "Intermediate" },
+    { value: "advanced", label: "Advanced" },
+  ],
+  EQUIPMENT: [
+    "Barbell", "Dumbbells", "Kettlebells", "Machines",
+    "Cables", "Resistance bands", "Pull-up bar", "Bodyweight only",
+  ],
+} as const;
+
+// Structured injury body areas + movements (used by the injury form).
+export const INJURY_AREAS = [
+  "knee", "lower_back", "shoulder", "elbow", "wrist", "hip", "ankle", "neck",
+] as const;
+export const INJURY_MOVEMENTS = [
+  "squat", "deadlift", "overhead_press", "bench_press", "lunge", "running", "jumping",
+] as const;
+
+// AI meal plan — user-facing config.
+export const MEAL_PLAN = {
+  TRIAL_DAYS: 7,
+  DURATION_DAYS: 7,
+} as const;
+
+export const DIET_PATTERNS = [
+  { value: "omnivore", label: "Omnivore" },
+  { value: "vegetarian", label: "Vegetarian" },
+  { value: "vegan", label: "Vegan" },
+  { value: "pescatarian", label: "Pescatarian" },
+  { value: "halal", label: "Halal" },
+  { value: "kosher", label: "Kosher" },
+  { value: "keto", label: "Keto" },
+] as const;
+
+// Canonical allergen vocabulary — must match the backend (foodLookup.ts).
+export const ALLERGENS = [
+  "milk", "eggs", "peanuts", "tree_nuts", "soy", "wheat_gluten", "fish", "shellfish", "sesame",
+] as const;
+
+// Conditions that route to the "consult a professional" off-ramp (backend enforces).
+export const MEDICAL_CONDITIONS = [
+  "diabetes", "kidney_disease", "pregnancy", "eating_disorder",
+] as const;
+
 export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 

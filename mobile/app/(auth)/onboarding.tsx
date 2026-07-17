@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,8 +14,13 @@ import { calculateGoalTargets } from "@/lib/nutritionCalc";
 import { todayLocal } from "@/lib/dates";
 import { AppTextInput } from "@/components/AppTextInput";
 import { Button } from "@/components/ui/Button";
+import { KeyboardAwareScreen } from "@/components/KeyboardAwareScreen";
+import { InjuryForm } from "@/components/InjuryForm";
+import { DietForm } from "@/components/DietForm";
+import type { InjuryInfo } from "@/lib/aiPlan";
+import type { DietInfo } from "@/lib/mealPlan";
 
-const STEPS = ["goal", "details", "activity"] as const;
+const STEPS = ["goal", "details", "activity", "injuries", "diet"] as const;
 type Step = (typeof STEPS)[number];
 
 const SEX_OPTIONS = [
@@ -61,6 +65,7 @@ export default function OnboardingScreen() {
   const [age, setAge] = useState("");
   const [sex, setSex] = useState("");
   const [activityLevel, setActivityLevel] = useState("");
+  const [injuryInfo, setInjuryInfo] = useState<InjuryInfo>({ status: "skipped" });
   const [isLoading, setIsLoading] = useState(false);
 
   function validateGoalStep(): boolean {
@@ -126,10 +131,10 @@ export default function OnboardingScreen() {
     if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
   }
 
-  async function finish() {
+  async function finish(dietInfo: DietInfo | null) {
     if (!validateGoalStep()) { setStep("goal"); return; }
     if (!validateDetailsStep()) { setStep("details"); return; }
-    if (!validateActivityStep()) return;
+    if (!validateActivityStep()) { setStep("activity"); return; }
 
     const parsedWeight = parseWeightKg(weightKg)!;
     const parsedHeight = parseHeightCm(heightCm)!;
@@ -162,6 +167,8 @@ export default function OnboardingScreen() {
         activity_level: activityLevel,
         sex: sex as "male" | "female" | "other" | "prefer_not_to_say",
         date_of_birth: ageToBirthYear(parsedAge),
+        injury_info: injuryInfo,
+        diet_info: dietInfo,
       });
 
       const metric = await logBodyMetric({
@@ -203,13 +210,7 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets
-      >
+      <KeyboardAwareScreen style={{ flex: 1 }}>
         {step === "goal" && (
           <View>
             <Text className="text-white text-2xl font-bold mb-2">What's your goal?</Text>
@@ -326,21 +327,47 @@ export default function OnboardingScreen() {
             </View>
           </View>
         )}
-      </ScrollView>
 
-      <View className="pb-8 pt-4">
-        {step !== "activity" ? (
-          <Button label="Continue" onPress={next} disabled={step === "goal" && !goalType} fullWidth />
-        ) : (
+        {step === "injuries" && (
+          <View>
+            <Text className="text-white text-2xl font-bold mb-2">Injuries or weak points</Text>
+            <Text className="text-slate-400 mb-6">
+              Optional — this helps us build safer AI plans. You can skip it.
+            </Text>
+            <InjuryForm
+              saveLabel="Continue"
+              onSubmit={(info) => { setInjuryInfo(info); setStep("diet"); }}
+              onSkip={() => { setInjuryInfo({ status: "skipped" }); setStep("diet"); }}
+            />
+          </View>
+        )}
+
+        {step === "diet" && (
+          <View>
+            <Text className="text-white text-2xl font-bold mb-2">Your diet</Text>
+            <Text className="text-slate-400 mb-6">
+              Powers AI meal plans. Allergies are enforced strictly; the rest is optional.
+            </Text>
+            <DietForm
+              saveLabel={isLoading ? "Setting up…" : "Save & finish"}
+              submitting={isLoading}
+              onSubmit={(info) => finish(info)}
+              onSkip={() => finish(null)}
+            />
+          </View>
+        )}
+      </KeyboardAwareScreen>
+
+      {step !== "injuries" && step !== "diet" && (
+        <View className="pb-8 pt-4">
           <Button
-            label={isLoading ? "Setting up…" : "Get started"}
-            onPress={finish}
-            loading={isLoading}
-            disabled={!activityLevel}
+            label="Continue"
+            onPress={next}
+            disabled={(step === "goal" && !goalType) || (step === "activity" && !activityLevel)}
             fullWidth
           />
-        )}
-      </View>
+        </View>
+      )}
     </View>
     </SafeAreaView>
   );
