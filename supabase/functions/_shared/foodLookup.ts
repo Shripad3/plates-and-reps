@@ -31,12 +31,22 @@ const ALLERGEN_KEYWORDS: [string, string][] = [
   ["sesame", "sesame"], ["tahini", "sesame"],
 ];
 
+// "Almond milk", "peanut butter", "coconut cream" etc. are dairy-free — the
+// milk/butter/cream token is a false positive unless a real dairy word is also
+// present.
+const PLANT_DAIRY = /\b(almond|soy|soya|oat|rice|coconut|cashew|hemp|pea|hazelnut|macadamia|peanut|sunflower|cocoa|shea|apple|nut|seed)\s+(milk|butter|cream|cheese|yogurt|yoghurt)/;
+const EXPLICIT_DAIRY = /\b(cheese|cheddar|mozzarella|parmesan|feta|ricotta|whey|casein|lactose|yogurt|yoghurt|buttermilk|ghee|custard|dairy|milkfat)\b/;
+
 /** Scan free text (name/ingredients) for allergen keywords. */
 export function deriveAllergens(text: string): string[] {
   const lc = ` ${text.toLowerCase()} `;
   const out = new Set<string>();
   for (const [kw, allergen] of ALLERGEN_KEYWORDS) {
     if (lc.includes(kw)) out.add(allergen);
+  }
+  // Drop a dairy false positive from plant "milk/butter/cream" names.
+  if (out.has("milk") && PLANT_DAIRY.test(lc) && !EXPLICIT_DAIRY.test(lc)) {
+    out.delete("milk");
   }
   return [...out];
 }

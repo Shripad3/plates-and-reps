@@ -9,7 +9,7 @@ export const AI_PLAN_CONFIG = {
   /** Default program length when the model isn't told otherwise. */
   DEFAULT_PLAN_WEEKS: 4,
   /** A training day below this many exercises triggers one repair retry. */
-  MIN_EXERCISES_PER_DAY: 3,
+  MIN_EXERCISES_PER_DAY: 4,
   /** Free trial length, deferred to first successful generation. */
   TRIAL_DAYS: 7,
   /** Absolute per-day safety cap on generations (applies even to paid). */

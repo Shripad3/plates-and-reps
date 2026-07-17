@@ -44,8 +44,10 @@ export function DietEditModal({
         </View>
         <ScrollView
           className="flex-1 px-5"
-          contentContainerStyle={{ paddingVertical: 20 }}
+          contentContainerStyle={{ paddingVertical: 20, paddingBottom: 120 }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
         >
           <DietForm initial={initial} saveLabel="Save" submitting={saving} onSubmit={save} onSkip={onClose} />
         </ScrollView>
