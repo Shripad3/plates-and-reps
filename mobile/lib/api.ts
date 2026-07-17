@@ -73,6 +73,17 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(Math.max(value, min), max);
+}
+
+// Plausibility bounds for crowd-sourced Open Food Facts data, mirroring the
+// server-side tool validation. Products outside these are dropped as garbage.
+const MAX_FOOD_CALORIES = 10000;
+const MAX_FOOD_MACRO_G = 1000;
+const MAX_FOOD_SODIUM_MG = 100000;
+
 function normalizeSearchText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
 }
@@ -150,19 +161,23 @@ function buildFoodInsertFromOpenFoodFacts(product: OpenFoodFactsProduct) {
     toNumber(nutriments.sodium_serving, NaN) * 1000 ||
     round2(toNumber(nutriments.sodium_100g, 0) * 1000 * servingSizeG / 100);
 
+  const caloriesFinal = round1(calories || 0);
+  // Drop products whose data is implausible rather than surfacing rubbish.
+  if (caloriesFinal < 0 || caloriesFinal > MAX_FOOD_CALORIES) return null;
+
   return {
     name,
     brand: product.brands?.split(",")[0]?.trim() || null,
     barcode,
-    serving_size_g: round2(servingSizeG),
+    serving_size_g: clamp(round2(servingSizeG), 0, 100000),
     serving_label: product.serving_size?.trim() || `${round2(servingSizeG)}g`,
-    calories_per_serving: round1(calories || 0),
-    protein_g: round2(protein || 0),
-    carbs_g: round2(carbs || 0),
-    fat_g: round2(fat || 0),
-    fiber_g: Number.isFinite(fiber) ? round2(fiber) : null,
-    sugar_g: Number.isFinite(sugar) ? round2(sugar) : null,
-    sodium_mg: Number.isFinite(sodiumMg) ? round2(sodiumMg) : null,
+    calories_per_serving: caloriesFinal,
+    protein_g: clamp(round2(protein || 0), 0, MAX_FOOD_MACRO_G),
+    carbs_g: clamp(round2(carbs || 0), 0, MAX_FOOD_MACRO_G),
+    fat_g: clamp(round2(fat || 0), 0, MAX_FOOD_MACRO_G),
+    fiber_g: Number.isFinite(fiber) ? clamp(round2(fiber), 0, MAX_FOOD_MACRO_G) : null,
+    sugar_g: Number.isFinite(sugar) ? clamp(round2(sugar), 0, MAX_FOOD_MACRO_G) : null,
+    sodium_mg: Number.isFinite(sodiumMg) ? clamp(round2(sodiumMg), 0, MAX_FOOD_SODIUM_MG) : null,
     source: "open_food_facts" as const,
     created_by: null,
     is_verified: false,
@@ -250,7 +265,9 @@ export async function updateProfile(updates: Partial<UserProfile>): Promise<User
 
   const { data, error } = await supabase
     .from("user_profiles")
-    .update({ ...safeUpdates, updated_at: new Date().toISOString() })
+    // Cast: injury_info is a valid column but database.types.ts is stale until
+    // regenerated (supabase gen types) after the ai_plan_generation migration.
+    .update({ ...safeUpdates, updated_at: new Date().toISOString() } as never)
     .eq("id", user.id)
     .select()
     .single();

@@ -7,7 +7,6 @@
     "@sentry/react-native": "^8.13.0",
     "@supabase/supabase-js": "^2.47.10",
     "@tanstack/react-query": "^5.64.1",
-    "drizzle-orm": "^0.40.1",
     "expo": "~54.0.35",
     "expo-apple-authentication": "~8.0.8",
     "expo-av": "~16.0.8",
@@ -28,7 +27,9 @@
     "nativewind": "^4.1.23",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-keyboard-controller": "1.18.5",
     "react-native-purchases": "^10.2.2",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
@@ -42,16 +43,13 @@
   "devDependencies": {
     "@expo/ngrok": "^4.1.3",
     "@types/react": "~19.1.0",
-    "drizzle-kit": "^0.30.4",
     "typescript": "~5.9.2"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "web": "expo start --web"
   },
   "private": true
 }

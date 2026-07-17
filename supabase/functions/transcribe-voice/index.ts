@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { assertVoiceLogAllowed, recordAiUsage } from "../_shared/usageLimits.ts";
+import { respond500 } from "../_shared/validation.ts";
+import { assertVoiceLogAllowed } from "../_shared/usageLimits.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -93,8 +94,6 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    await recordAiUsage(admin, user.id, "voice_log");
 
     const formData = await req.formData();
     const audioFile = formData.get("audio") as File | null;
@@ -197,9 +196,6 @@ Rules:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond500(err, "transcribe-voice");
   }
 });

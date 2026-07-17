@@ -1,14 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { assertPhotoAnalysisAllowed, recordAiUsage } from "../_shared/usageLimits.ts";
-import { validateImageUrl, respond400 } from "../_shared/validation.ts";
+import { assertPhotoAnalysisAllowed } from "../_shared/usageLimits.ts";
+import {
+  validateImageUrl,
+  respond400,
+  respond500,
+  isImageBytes,
+  MAX_IMAGE_BYTES,
+} from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
+// Llama 4 Scout 17B was deprecated by Groq (decommissioned 2026-07-17); Maverick
+// is the current vision-capable replacement. Override with GROQ_VISION_MODEL.
 const GROQ_MODEL =
-  Deno.env.get("GROQ_VISION_MODEL") ?? "meta-llama/llama-4-scout-17b-16e-instruct";
+  Deno.env.get("GROQ_VISION_MODEL") ?? "meta-llama/llama-4-maverick-17b-128e-instruct";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 interface FoodItem {
@@ -66,21 +74,32 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    await recordAiUsage(admin, user.id, "photo_analysis");
-
     const body = await req.json().catch(() => ({}));
     const { image_url } = body;
 
     const urlError = validateImageUrl(image_url);
     if (urlError) return respond400(urlError);
 
-    // Fetch image and encode as data URL for Groq image input
-    const imgRes = await fetch(image_url as string);
-    if (!imgRes.ok) throw new Error("Failed to fetch image");
-    const imgBuffer = await imgRes.arrayBuffer();
-    const base64Data = toBase64(imgBuffer);
-    const mimeType = imgRes.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
-    const dataUrl = `data:${mimeType};base64,${base64Data}`;
+    let dataUrl: string;
+    if ((image_url as string).startsWith("data:")) {
+      // The app sends the photo inline — already validated (size + magic bytes).
+      // No fetch, so there is no SSRF surface on this path.
+      dataUrl = image_url as string;
+    } else {
+      // Remote https URL: fetch, then size- and content-check before use.
+      const imgRes = await fetch(image_url as string);
+      if (!imgRes.ok) throw new Error("Failed to fetch image");
+      const imgBuffer = await imgRes.arrayBuffer();
+      if (imgBuffer.byteLength > MAX_IMAGE_BYTES) {
+        return respond400("image is too large (max 10MB)");
+      }
+      if (!isImageBytes(new Uint8Array(imgBuffer.slice(0, 16)))) {
+        return respond400("image_url is not a valid image");
+      }
+      const base64Data = toBase64(imgBuffer);
+      const mimeType = imgRes.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
+      dataUrl = `data:${mimeType};base64,${base64Data}`;
+    }
 
     const response = await fetch(GROQ_URL, {
       method: "POST",
@@ -133,9 +152,6 @@ Be conservative with portion estimates. If you cannot identify food items, retur
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond500(err, "analyze-food-photo");
   }
 });

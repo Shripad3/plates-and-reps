@@ -66,7 +66,8 @@ Deno.serve(async (req: Request) => {
 
     const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
     if (deleteError) {
-      return new Response(JSON.stringify({ error: deleteError.message }), {
+      console.error("[delete-account] deleteUser failed", deleteError);
+      return new Response(JSON.stringify({ error: "Could not delete your account. Please contact support." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -77,8 +78,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Account deletion failed";
-    return new Response(JSON.stringify({ error: message }), {
+    console.error("[delete-account]", err);
+    return new Response(JSON.stringify({ error: "Account deletion failed. Please contact support." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

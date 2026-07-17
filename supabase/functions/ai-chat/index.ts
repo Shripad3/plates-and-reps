@@ -1,7 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { respond500 } from "../_shared/validation.ts";
 import { calculateGoalTargets } from "../_shared/nutritionCalc.ts";
-import { assertChatAllowed, recordAiUsage } from "../_shared/usageLimits.ts";
+import { assertChatAllowed } from "../_shared/usageLimits.ts";
 import { validateToolArgs } from "../_shared/toolValidation.ts";
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
@@ -9,6 +10,7 @@ const GROQ_MODEL = Deno.env.get("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const MAX_MESSAGE_CHARS = 4000; // cap user input to bound token cost + DB size
 
 function toNumber(value: unknown, fallback = 0): number {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -589,6 +591,12 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    if (typeof message !== "string" || message.length > MAX_MESSAGE_CHARS) {
+      return new Response(
+        JSON.stringify({ error: `message must be ${MAX_MESSAGE_CHARS} characters or fewer` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { data: conversation, error: convError } = await supabase
       .from("chat_conversations")
@@ -602,8 +610,6 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    await recordAiUsage(supabase, user.id, "ai_chat");
 
     const [userContext, { data: history }] = await Promise.all([
       loadUserContext(user.id, supabase),
@@ -647,12 +653,14 @@ Deno.serve(async (req: Request) => {
           tools,
           tool_choice: "auto",
           temperature: 0.2,
+          max_tokens: 1024,
         }),
       });
 
       if (!groqRes.ok) {
-        const details = await groqRes.text();
-        finalText = `Groq API error (${groqRes.status}).\n\n${details}`;
+        // Log provider detail server-side; never surface it in the chat.
+        console.error("Groq API error", groqRes.status, await groqRes.text().catch(() => ""));
+        finalText = "Sorry — I couldn't reach your coach just now. Please try again in a moment.";
         break;
       }
 
@@ -758,9 +766,6 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond500(err, "ai-chat");
   }
 });

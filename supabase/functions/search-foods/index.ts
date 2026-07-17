@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { assertSearchAllowed, recordAiUsage } from "../_shared/usageLimits.ts";
-import { respond429 } from "../_shared/validation.ts";
+import { assertSearchAllowed } from "../_shared/usageLimits.ts";
+import { respond429, respond500 } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -73,6 +73,17 @@ function round2(value: number): number {
 
 function normalizeSearchText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+}
+
+/**
+ * Strip characters that carry meaning in a PostgREST filter expression before
+ * interpolating user input into `.or(...)`. Without this, a `,` or `)` lets a
+ * caller rewrite the filter — and these queries run with the service-role key,
+ * so RLS would not contain it. Mirrors the client-side sanitizer.
+ */
+const MAX_SEARCH_LEN = 100;
+function sanitizePostgrestFilter(value: string): string {
+  return value.replace(/[%_(),.\\*:"']/g, " ").trim().slice(0, MAX_SEARCH_LEN);
 }
 
 function rankAndDedupeFoods(foods: FoodRow[], query: string, limit = 25): FoodRow[] {
@@ -199,10 +210,13 @@ async function fetchProductByBarcode(barcode: string): Promise<OpenFoodFactsProd
 }
 
 async function queryLocalFoods(supabase: ReturnType<typeof createClient>, query: string, limit = 25): Promise<FoodRow[]> {
+  // Never interpolate raw input into a PostgREST filter (runs as service-role).
+  const safe = sanitizePostgrestFilter(query);
+  if (!safe) return [];
   const { data, error } = await supabase
     .from("foods")
     .select("*")
-    .or(`name.ilike.%${query}%,brand.ilike.%${query}%`)
+    .or(`name.ilike.%${safe}%,brand.ilike.%${safe}%`)
     .limit(90);
   if (error) throw error;
   return rankAndDedupeFoods((data ?? []) as FoodRow[], query, limit);
@@ -239,11 +253,12 @@ Deno.serve(async (req: Request) => {
 
     const limitError = await assertSearchAllowed(service, authData.user.id);
     if (limitError) return respond429(limitError);
-    await recordAiUsage(service, authData.user.id, "food_search");
 
     const body = await req.json().catch(() => ({}));
-    const query = String(body?.query ?? "").trim();
-    const barcode = String(body?.barcode ?? "").trim();
+    const query = String(body?.query ?? "").trim().slice(0, MAX_SEARCH_LEN);
+    // Barcodes are numeric; reject anything else rather than pass it downstream.
+    const rawBarcode = String(body?.barcode ?? "").trim();
+    const barcode = /^[0-9]{6,20}$/.test(rawBarcode) ? rawBarcode : "";
     const limit = Math.max(1, Math.min(40, Number(body?.limit ?? 25)));
 
     if (!query && !barcode) {
@@ -330,9 +345,6 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond500(err, "search-foods");
   }
 });

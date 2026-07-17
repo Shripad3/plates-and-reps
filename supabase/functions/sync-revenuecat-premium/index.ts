@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
-import { assertRcSyncAllowed, recordAiUsage } from "../_shared/usageLimits.ts";
-import { respond429 } from "../_shared/validation.ts";
+import { respond500 } from "../_shared/validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -72,10 +71,10 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // No rate limit here: this is a subscription-status sync (cheap RevenueCat
+  // read), not a billable AI feature, and it runs on every login/foreground.
+  // Capping it would wrongly demote active premium users to free.
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-  const limitError = await assertRcSyncAllowed(admin, user.id);
-  if (limitError) return respond429(limitError);
-  await recordAiUsage(admin, user.id, "rc_sync");
 
   try {
     const rcRes = await fetch(
@@ -111,9 +110,6 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond500(error, "sync-revenuecat-premium");
   }
 });
