@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.ai_trials (
 ALTER TABLE public.ai_trials ENABLE ROW LEVEL SECURITY;
 -- Read-only for the owner (for trial-countdown UI). Writes happen only through
 -- the service-role RPC below, so a client can't start/reset/extend a trial.
+DROP POLICY IF EXISTS "read_own_ai_trials" ON public.ai_trials;
 CREATE POLICY "read_own_ai_trials" ON public.ai_trials
   FOR SELECT USING (user_id = auth.uid());
 
@@ -105,6 +106,7 @@ CREATE TABLE IF NOT EXISTS public.meal_plans (
 );
 
 ALTER TABLE public.meal_plans ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "own_meal_plans" ON public.meal_plans;
 CREATE POLICY "own_meal_plans" ON public.meal_plans
   USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());
