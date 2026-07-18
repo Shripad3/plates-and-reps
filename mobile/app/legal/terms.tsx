@@ -12,9 +12,18 @@ export default function TermsScreen() {
           By using {APP_NAME}, you agree to these terms. If you do not agree, do not use the app.
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
-          {APP_NAME} provides fitness tracking and {APP_AI_NAME} coaching. AI guidance is for general
-          fitness purposes only and is not medical advice. Consult a healthcare professional before
-          starting any diet or exercise program.
+          <Text className="text-white font-semibold">Health &amp; nutrition disclaimer{"\n"}</Text>
+          {APP_NAME} provides fitness tracking, {APP_AI_NAME} coaching, and AI-generated workout and
+          meal plans. All of this is general information, not medical, dietary, or medical-nutrition
+          advice. AI-generated content may be inaccurate or incomplete. Calorie and nutrition values,
+          and any allergen or dietary filtering, are best-effort estimates and are not guaranteed — do
+          not rely on them if you have a food allergy, intolerance, or medical condition. Always verify
+          ingredients yourself.
+        </Text>
+        <Text className="text-slate-300 text-sm leading-6 mb-4">
+          Consult a qualified healthcare professional or registered dietitian before starting any diet
+          or exercise program, particularly if you are pregnant, under 18, or have a medical condition
+          or a history of disordered eating. Use of AI plans is at your own risk.
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
           Premium subscriptions renew automatically unless cancelled at least 24 hours before the
@@ -37,7 +46,7 @@ export default function TermsScreen() {
         <Text className="text-brand-400 text-sm mb-4" onPress={() => Linking.openURL(TERMS_URL)}>
           View web version
         </Text>
-        <Text className="text-slate-500 text-xs">Last updated: June 2026</Text>
+        <Text className="text-slate-500 text-xs">Last updated: July 2026</Text>
       </ScrollView>
     </SafeAreaView>
   );
