@@ -32,11 +32,13 @@ export default function PrivacyPolicyScreen() {
           activity level, goals and target macros, your nutrition totals and logged foods, your
           workout and cardio history, your logged body weight, and the messages you type. Food photos
           and voice recordings for AI food logging are also processed through Groq. When you generate
-          an AI plan we additionally send the inputs for that plan: for workout plans, your goal,
-          experience, equipment, and any injuries you provide; for meal plans, your calorie target,
-          dietary pattern, dislikes, cuisines, and any allergies or intolerances you provide. Allergy
-          and injury information is health-related and optional. We ask for your consent before AI
-          features are first used, and you can decline. Groq does not use this data to train its models.
+          an AI plan we additionally send Groq the inputs for that plan: for workout plans, your goal,
+          experience level, available equipment, and any injuries or weak points you provide; for meal
+          plans, your calorie target, dietary pattern, food dislikes, cuisine preferences, and any
+          allergies or intolerances you provide. Allergy and injury information is health-related; you
+          choose whether to provide it. We ask for your consent before AI features are used for the
+          first time, and you can decline. Groq processes this data to generate a response and does not
+          use it to train its models.
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
           <Text className="text-white font-semibold">Third parties{"\n"}</Text>
