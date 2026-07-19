@@ -84,11 +84,11 @@ export const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
 export const ACTIVITY_LEVELS = [
-  { value: "sedentary", label: "Sedentary", description: "Little or no exercise" },
-  { value: "lightly_active", label: "Lightly Active", description: "Exercise 1–3 days/week" },
-  { value: "moderately_active", label: "Moderately Active", description: "Exercise 3–5 days/week" },
-  { value: "very_active", label: "Very Active", description: "Hard exercise 6–7 days/week" },
-  { value: "extra_active", label: "Extra Active", description: "Very hard exercise + physical job" },
+  { value: "sedentary", label: "Sedentary", description: "Mostly sitting through the day" },
+  { value: "lightly_active", label: "Lightly Active", description: "Light movement, some walking" },
+  { value: "moderately_active", label: "Moderately Active", description: "On your feet a good part of the day" },
+  { value: "very_active", label: "Very Active", description: "Very physically active most days" },
+  { value: "extra_active", label: "Extra Active", description: "Intense physical activity all day" },
 ] as const;
 
 export const GOAL_TYPES = [
