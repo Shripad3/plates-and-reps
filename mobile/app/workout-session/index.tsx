@@ -4,13 +4,13 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
   RefreshControl,
   InputAccessoryView,
   Keyboard,
   Platform,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { WorkoutSessionSkeleton } from "@/components/skeletons/WorkoutSessionSkeleton";
 import DraggableFlatList, { ScaleDecorator, type RenderItemParams } from "react-native-draggable-flatlist";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -139,7 +139,12 @@ export default function WorkoutSessionScreen() {
 
   useEffect(() => {
     if (initializedRef.current) return;
-    if (templateId && templatesLoading) return;
+    // Wait for the templates query to settle before initializing — on ALL
+    // paths, not just the templateId one. Starting init() while the query is
+    // still loading means it flips templatesLoading/templates mid-flight, which
+    // re-runs this effect, cancels the in-flight init, and leaves the screen
+    // stuck on the loading skeleton (infinite buffer on first cold launch).
+    if (templatesLoading) return;
 
     initializedRef.current = true;
     let cancelled = false;
@@ -201,8 +206,11 @@ export default function WorkoutSessionScreen() {
     return () => {
       cancelled = true;
     };
+    // `templates` is intentionally omitted: init() reads it once when
+    // templatesLoading becomes false, and we must NOT let a later templates
+    // refetch re-run this effect and cancel an in-flight init.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateId, templates, templatesLoading]);
+  }, [templateId, templatesLoading]);
 
   // Discard the session if the screen is left any way other than
   // explicit Finish/Discard (e.g. swipe-back, hardware back button),
@@ -366,9 +374,8 @@ export default function WorkoutSessionScreen() {
   if (isInitializing) {
     return (
       <SafeAreaProvider>
-        <SafeAreaView className="flex-1 bg-surface items-center justify-center">
-          <ActivityIndicator size="large" color={colors.brand[500]} />
-          <Text className="text-slate-400 mt-3">Starting workout…</Text>
+        <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
+          <WorkoutSessionSkeleton />
         </SafeAreaView>
       </SafeAreaProvider>
     );
