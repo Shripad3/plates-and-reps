@@ -60,7 +60,6 @@
           "microphonePermission": "Used to log food by voice."
         }
       ],
-      "expo-sqlite",
       "expo-web-browser",
       "expo-apple-authentication"
     ],
