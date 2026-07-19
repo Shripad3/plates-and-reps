@@ -13,6 +13,7 @@ import { useScreenRefresh } from "@/hooks/useScreenRefresh";
 import { useRefetchOnFocus } from "@/hooks/useRefetchOnFocus";
 import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { EmptyState } from "@/components/EmptyState";
+import { WorkoutRowsSkeleton } from "@/components/skeletons/WorkoutsSkeleton";
 import { SwipeToDeleteRow } from "@/components/SwipeToDeleteRow";
 import { Button } from "@/components/ui/Button";
 import { Card, Section, SectionTitle } from "@/components/ui/Card";
@@ -27,8 +28,8 @@ export default function WorkoutsScreen() {
   useRefetchOnFocus(refreshKeys);
   const tabBarPadding = useTabBarScrollPadding();
 
-  const { data: templates = [] } = useWorkoutTemplates();
-  const { data: sessions = [] } = useWorkoutSessions();
+  const { data: templates = [], isLoading: templatesLoading } = useWorkoutTemplates();
+  const { data: sessions = [], isLoading: sessionsLoading } = useWorkoutSessions();
   const deleteSession = useDeleteWorkoutSession();
   const clearHistory = useClearWorkoutHistory();
 
@@ -127,7 +128,9 @@ export default function WorkoutsScreen() {
             </View>
           </View>
 
-          {templates.length === 0 ? (
+          {templatesLoading && templates.length === 0 ? (
+            <WorkoutRowsSkeleton count={3} />
+          ) : templates.length === 0 ? (
             <EmptyState
               icon="list-outline"
               title="No routines yet"
@@ -168,7 +171,9 @@ export default function WorkoutsScreen() {
               </TouchableOpacity>
             )}
           </View>
-          {sessions.length === 0 ? (
+          {sessionsLoading && sessions.length === 0 ? (
+            <WorkoutRowsSkeleton count={3} />
+          ) : sessions.length === 0 ? (
             <EmptyState compact icon="barbell-outline" title="No workouts logged yet" />
           ) : (
             sessions.slice(0, 5).map((s) => (

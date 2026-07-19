@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AiPlanSkeleton } from "@/components/skeletons/AiPlanSkeleton";
 import { KeyboardAwareScreen } from "@/components/KeyboardAwareScreen";
 import { router } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -151,9 +152,9 @@ export default function AiPlanScreen() {
           )}
 
           {phase === "loading" && (
-            <View className="items-center py-16">
-              <ActivityIndicator size="large" color={colors.brand[400]} />
-              <Text className="text-slate-400 text-sm mt-4">Building your plan…</Text>
+            <View>
+              <Text className="text-slate-400 text-sm mb-4">Building your plan…</Text>
+              <AiPlanSkeleton />
             </View>
           )}
 

@@ -15,6 +15,7 @@ import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { TabSafeArea } from "@/components/TabSafeArea";
 import { AppTextInput } from "@/components/AppTextInput";
 import { EmptyState } from "@/components/EmptyState";
+import { SocialFeedSkeleton } from "@/components/skeletons/SocialSkeleton";
 import { colors } from "@/lib/theme";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -538,7 +539,7 @@ export default function SocialScreen() {
     queryFn: getFollowRequests,
   });
 
-  const { data: feed = [] } = useQuery({
+  const { data: feed = [], isLoading: feedLoading } = useQuery({
     queryKey: ["feed"],
     queryFn: () => getFeed(),
   });
@@ -582,7 +583,9 @@ export default function SocialScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
-          {feed.length === 0 ? (
+          {feedLoading && feed.length === 0 ? (
+            <SocialFeedSkeleton />
+          ) : feed.length === 0 ? (
             <EmptyState
               icon="newspaper-outline"
               title="No activity yet"

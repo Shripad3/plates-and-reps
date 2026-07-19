@@ -17,6 +17,7 @@ import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { todayLocal } from "@/lib/dates";
 import { AppTextInput } from "@/components/AppTextInput";
 import { EmptyState } from "@/components/EmptyState";
+import { ProgressChartSkeleton } from "@/components/skeletons/ProgressSkeleton";
 import { Card, SectionTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { WeightLineChart } from "@/components/WeightLineChart";
@@ -110,7 +111,7 @@ export default function ProgressScreen() {
   useRefetchOnFocus(refreshKeys);
   const tabBarPadding = useTabBarScrollPadding();
 
-  const { data: metrics = [] } = useQuery({
+  const { data: metrics = [], isLoading: metricsLoading } = useQuery({
     queryKey: ["body-metrics"],
     queryFn: () => getBodyMetrics(90),
   });
@@ -314,7 +315,9 @@ export default function ProgressScreen() {
           </View>
         )}
 
-        {weightMetrics.length === 0 && (
+        {metricsLoading && metrics.length === 0 && <ProgressChartSkeleton />}
+
+        {!metricsLoading && weightMetrics.length === 0 && (
           <EmptyState
             icon="analytics-outline"
             title="Start tracking your weight"

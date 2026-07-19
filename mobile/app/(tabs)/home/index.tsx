@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
 } from "react-native";
 import { router, type Href } from "expo-router";
 import { TabSafeArea } from "@/components/TabSafeArea";
@@ -20,6 +19,7 @@ import { useRefetchOnFocus } from "@/hooks/useRefetchOnFocus";
 import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { todayLocal } from "@/lib/dates";
 import { Card, Section, SectionTitle } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { IconButton } from "@/components/ui/IconButton";
 import { CoachHeaderButton } from "@/components/CoachHeaderButton";
@@ -156,7 +156,11 @@ export default function HomeScreen() {
               Calories today
             </Text>
             {isLoading && logs.length === 0 ? (
-              <ActivityIndicator color={colors.brand[400]} className="py-6" />
+              <View className="py-2">
+                <Skeleton width={130} height={58} radius={12} style={{ marginBottom: 12 }} />
+                <Skeleton height={6} radius={999} style={{ marginBottom: 12 }} />
+                <Skeleton width={180} height={12} />
+              </View>
             ) : (
               <>
                 <View className="flex-row items-end mb-3">
@@ -290,7 +294,22 @@ export default function HomeScreen() {
 
         {/* ── Recent workouts (list-rows) ── */}
         {sessionsLoading ? (
-          <ActivityIndicator color={colors.brand[400]} className="mt-6" />
+          <Section className="mt-6 mb-8">
+            <SectionTitle>Recent workouts</SectionTitle>
+            {[0, 1, 2].map((i) => (
+              <View
+                key={i}
+                style={{ borderRadius: radii.sm }}
+                className="bg-surface-card border border-surface-border p-4 mb-2 flex-row items-center justify-between"
+              >
+                <View className="flex-1 mr-3" style={{ gap: 8 }}>
+                  <Skeleton width={140} height={14} />
+                  <Skeleton width={90} height={11} />
+                </View>
+                <Skeleton width={40} height={12} />
+              </View>
+            ))}
+          </Section>
         ) : sessions.length > 0 ? (
           <Section className="mt-6 mb-8">
             <SectionTitle>Recent workouts</SectionTitle>

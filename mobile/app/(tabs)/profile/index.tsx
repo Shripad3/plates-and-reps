@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator,
   RefreshControl,
   Linking,
 } from "react-native";
 import { TabSafeArea } from "@/components/TabSafeArea";
+import { ProfileSkeleton } from "@/components/skeletons/ProfileSkeleton";
 import { router, type Href } from "expo-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -523,9 +523,8 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <TabSafeArea>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.brand[500]} />
-        </View>
+        <ScreenHeader title="Account" />
+        <ProfileSkeleton />
       </TabSafeArea>
     );
   }

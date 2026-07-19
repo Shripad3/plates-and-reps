@@ -30,6 +30,7 @@ import { AppTextInput } from "@/components/AppTextInput";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { AnimatedKeyboardAvoidingView } from "@/components/AnimatedKeyboardAvoidingView";
 import { EmptyState } from "@/components/EmptyState";
+import { ChatSkeleton } from "@/components/skeletons/ChatSkeleton";
 import { colors } from "@/lib/theme";
 import { Ionicons } from "@expo/vector-icons";
 import type { ChatMessage } from "@/types";
@@ -409,9 +410,7 @@ export default function ChatScreen() {
     return (
       <SwipeBackGesture>
         <SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color={colors.brand[400]} />
-          </View>
+          <ChatSkeleton />
         </SafeAreaView>
       </SwipeBackGesture>
     );

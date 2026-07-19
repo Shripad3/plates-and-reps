@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ScrollView, View, Text, ActivityIndicator } from "react-native";
+import { ScrollView, View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -8,7 +8,10 @@ import type { WorkoutSet } from "@/types";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
-import { colors } from "@/lib/theme";
+import {
+  WorkoutSummarySkeleton,
+  SessionExercisesSkeleton,
+} from "@/components/skeletons/WorkoutDetailSkeleton";
 
 function groupSetsByExercise(sets: WorkoutSet[]) {
   const map = new Map<string, { name: string; sets: WorkoutSet[] }>();
@@ -51,7 +54,7 @@ export default function SessionDetailScreen() {
         <ScreenHeader title="Workout Summary" />
         <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: tabBarPadding }}>
           {sessionLoading ? (
-            <ActivityIndicator color={colors.brand[400]} className="py-8" />
+            <WorkoutSummarySkeleton />
           ) : session ? (
             <View className="bg-surface-card rounded-2xl p-4 mb-4">
               <Text className="text-white text-xl font-bold">{session.name}</Text>
@@ -85,7 +88,7 @@ export default function SessionDetailScreen() {
           )}
 
           {isLoading ? (
-            <ActivityIndicator color={colors.brand[400]} className="py-8" />
+            <SessionExercisesSkeleton />
           ) : exercises.length === 0 ? (
             <Text className="text-slate-400 text-center py-8">No sets logged for this session.</Text>
           ) : (

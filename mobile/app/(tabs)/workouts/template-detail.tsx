@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { ScrollView, View, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +9,7 @@ import type { Exercise } from "@/types";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { Button } from "@/components/ui/Button";
-import { colors } from "@/lib/theme";
+import { TemplateExercisesSkeleton } from "@/components/skeletons/WorkoutDetailSkeleton";
 
 export default function TemplateDetailScreen() {
   const { templateId } = useLocalSearchParams<{ templateId?: string }>();
@@ -90,7 +90,7 @@ export default function TemplateDetailScreen() {
           </Text>
 
           {isLoading ? (
-            <ActivityIndicator color={colors.brand[400]} className="py-8" />
+            <TemplateExercisesSkeleton />
           ) : exercises.length === 0 ? (
             <Text className="text-slate-400 text-center py-8">No exercises in this routine.</Text>
           ) : (

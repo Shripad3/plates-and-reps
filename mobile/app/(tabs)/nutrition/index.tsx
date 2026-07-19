@@ -22,6 +22,7 @@ import { useScreenRefresh } from "@/hooks/useScreenRefresh";
 import { useRefetchOnFocus } from "@/hooks/useRefetchOnFocus";
 import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
 import { EmptyState } from "@/components/EmptyState";
+import { NutritionDiarySkeleton } from "@/components/skeletons/NutritionSkeleton";
 import { SwipeToDeleteRow } from "@/components/SwipeToDeleteRow";
 import { isPendingLogId } from "@/lib/offlineNutrition";
 import { AiFoodLogActions } from "@/components/AiFoodLogActions";
@@ -133,7 +134,7 @@ export default function NutritionScreen() {
   useRefetchOnFocus(refreshKeys);
   const tabBarPadding = useTabBarScrollPadding();
 
-  const { data: logs } = useNutritionLogs(selectedDate);
+  const { data: logs, isLoading: logsLoading } = useNutritionLogs(selectedDate);
   const { data: recentFoods = [] } = useRecentFoods();
   const logFood = useLogFood();
   const { data: goal } = useQuery({ queryKey: ["goal"], queryFn: getGoal });
@@ -305,7 +306,9 @@ export default function NutritionScreen() {
           )}
         </View>
 
-        {hasAnyLogs ? (
+        {logsLoading && !hasAnyLogs ? (
+          <NutritionDiarySkeleton />
+        ) : hasAnyLogs ? (
           <View
             style={{
               borderRadius: radii.md,
