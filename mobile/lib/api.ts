@@ -88,6 +88,13 @@ function normalizeSearchText(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
 }
 
+/** Whole-food-first priority: 2 = USDA/verified generic, 1 = brandless, 0 = branded. */
+function wholeFoodScore(food: Food): number {
+  if (food.source === "usda" || food.is_verified) return 2;
+  if (!food.brand?.trim()) return 1;
+  return 0;
+}
+
 function rankAndDedupeFoods(foods: Food[], query: string, limit = 25): Food[] {
   const q = normalizeSearchText(query);
   const queryTokens = q.split(/\s+/).filter(Boolean);
@@ -107,6 +114,12 @@ function rankAndDedupeFoods(foods: Food[], query: string, limit = 25): Food[] {
   }
 
   const ranked = [...dedupedByKey.values()].sort((a, b) => {
+    // Whole foods first, then name-relevance within each tier (mirrors the
+    // search-foods edge function's ranking).
+    const wholeA = wholeFoodScore(a);
+    const wholeB = wholeFoodScore(b);
+    if (wholeA !== wholeB) return wholeB - wholeA;
+
     const nameA = normalizeSearchText(a.name);
     const nameB = normalizeSearchText(b.name);
     const brandA = normalizeSearchText(a.brand ?? "");
@@ -125,6 +138,9 @@ function rankAndDedupeFoods(foods: Food[], query: string, limit = 25): Food[] {
     if (tokenMatchesA !== tokenMatchesB) return tokenMatchesB - tokenMatchesA;
 
     if (a.is_verified !== b.is_verified) return Number(b.is_verified) - Number(a.is_verified);
+    // Shorter USDA descriptions are the simpler/base form ("Beets, raw" beats
+    // "Babyfood, vegetables, beets, strained") — surface them first.
+    if (a.name.length !== b.name.length) return a.name.length - b.name.length;
     return a.name.localeCompare(b.name);
   });
 

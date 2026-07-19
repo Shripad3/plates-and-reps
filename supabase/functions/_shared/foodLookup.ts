@@ -4,6 +4,8 @@
 // Both normalize to a `foods`-row shape with per-100g macros and canonical
 // allergens. allergens === null means UNKNOWN (hard-filter treats conservatively).
 
+import { britishToAmerican } from "./foodSynonyms.ts";
+
 const USDA_KEY = Deno.env.get("USDA_FDC_API_KEY") ?? "DEMO_KEY";
 const USDA_SEARCH = "https://api.nal.usda.gov/fdc/v1/foods/search";
 const OFF_SEARCH = "https://world.openfoodfacts.org/cgi/search.pl";
@@ -89,24 +91,19 @@ function usdaNutrient(food: any, id: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
-export async function lookupUsdaFood(query: string): Promise<ResolvedFood | null> {
-  const url =
-    `${USDA_SEARCH}?api_key=${USDA_KEY}&query=${encodeURIComponent(query)}` +
-    `&pageSize=1&dataType=${encodeURIComponent("Foundation,SR Legacy,Branded")}`;
-  let res: Response;
-  try { res = await fetch(url); } catch { return null; }
-  if (!res.ok) return null;
-  const data = await res.json().catch(() => null);
-  const food = data?.foods?.[0];
-  if (!food) return null;
-
-  const calories = usdaNutrient(food, 1008);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapUsdaFood(food: any, fallbackName: string): ResolvedFood | null {
+  // Energy: SR Legacy/Branded report kcal under 1008; Foundation foods often
+  // omit 1008 and only carry Atwater energy (2047 General, 2048 Specific).
+  // Without this fallback, raw Foundation whole foods show 0 kcal.
+  const calories =
+    usdaNutrient(food, 1008) || usdaNutrient(food, 2047) || usdaNutrient(food, 2048);
   const protein = usdaNutrient(food, 1003);
   const fat = usdaNutrient(food, 1004);
   const carbs = usdaNutrient(food, 1005);
   if (calories <= 0 && protein <= 0 && carbs <= 0 && fat <= 0) return null;
 
-  const description: string = food.description ?? query;
+  const description: string = food.description ?? fallbackName;
   const ingredients: string = food.ingredients ?? "";
   let allergens: string[] | null;
   if (food.dataType === "Branded") {
@@ -128,6 +125,45 @@ export async function lookupUsdaFood(query: string): Promise<ResolvedFood | null
     allergens,
     source: "usda",
   };
+}
+
+async function fetchUsdaFoods(query: string, dataType: string, pageSize: number): Promise<unknown[]> {
+  const url =
+    `${USDA_SEARCH}?api_key=${USDA_KEY}&query=${encodeURIComponent(query)}` +
+    `&pageSize=${pageSize}&dataType=${encodeURIComponent(dataType)}`;
+  let res: Response;
+  try { res = await fetch(url); } catch { return []; }
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => null);
+  return Array.isArray(data?.foods) ? data.foods : [];
+}
+
+export async function lookupUsdaFood(query: string): Promise<ResolvedFood | null> {
+  const q = britishToAmerican(query);
+  // Prefer a generic whole food; only fall back to Branded if none exists.
+  // Querying Branded first can resolve e.g. "Mixed Berries" to a branded cereal
+  // with wrong macros and phantom allergens.
+  for (const dataType of ["Foundation,SR Legacy", "Branded"]) {
+    const [food] = await fetchUsdaFoods(q, dataType, 1);
+    const mapped = food ? mapUsdaFood(food, q) : null;
+    if (mapped) return mapped;
+  }
+  return null;
+}
+
+/**
+ * Multi-result USDA search constrained to generic whole-food data types
+ * (Foundation / SR Legacy). Used by food search to surface e.g. "Beets, raw"
+ * above branded packaged products. Returns [] on any failure.
+ */
+export async function searchUsdaFoods(query: string, pageSize = 8): Promise<ResolvedFood[]> {
+  const foods = await fetchUsdaFoods(britishToAmerican(query), "Foundation,SR Legacy", pageSize);
+  const out: ResolvedFood[] = [];
+  for (const food of foods) {
+    const mapped = mapUsdaFood(food, query);
+    if (mapped) out.push(mapped);
+  }
+  return out;
 }
 
 export async function lookupOffFood(query: string): Promise<ResolvedFood | null> {

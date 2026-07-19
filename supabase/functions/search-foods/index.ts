@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { assertSearchAllowed } from "../_shared/usageLimits.ts";
 import { respond429, respond500 } from "../_shared/validation.ts";
+import { searchUsdaFoods, type ResolvedFood } from "../_shared/foodLookup.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -86,6 +87,20 @@ function sanitizePostgrestFilter(value: string): string {
   return value.replace(/[%_(),.\\*:"']/g, " ").trim().slice(0, MAX_SEARCH_LEN);
 }
 
+/**
+ * Whole-food-first priority. Generic whole foods (USDA / verified) outrank
+ * branded packaged products so e.g. "Beets, raw" beats "Tesco Beetroot" even
+ * when the branded item is an exact name match.
+ *   2 = authoritative generic (USDA, or a verified seed food)
+ *   1 = brandless
+ *   0 = branded
+ */
+function wholeFoodScore(food: FoodRow): number {
+  if (food.source === "usda" || food.is_verified) return 2;
+  if (!food.brand?.trim()) return 1;
+  return 0;
+}
+
 function rankAndDedupeFoods(foods: FoodRow[], query: string, limit = 25): FoodRow[] {
   const q = normalizeSearchText(query);
   const queryTokens = q.split(/\s+/).filter(Boolean);
@@ -105,6 +120,11 @@ function rankAndDedupeFoods(foods: FoodRow[], query: string, limit = 25): FoodRo
   }
 
   const ranked = [...dedupedByKey.values()].sort((a, b) => {
+    // Whole foods first, then the name-relevance ordering within each tier.
+    const wholeA = wholeFoodScore(a);
+    const wholeB = wholeFoodScore(b);
+    if (wholeA !== wholeB) return wholeB - wholeA;
+
     const nameA = normalizeSearchText(a.name);
     const nameB = normalizeSearchText(b.name);
     const brandA = normalizeSearchText(a.brand ?? "");
@@ -123,6 +143,9 @@ function rankAndDedupeFoods(foods: FoodRow[], query: string, limit = 25): FoodRo
     if (tokenMatchesA !== tokenMatchesB) return tokenMatchesB - tokenMatchesA;
 
     if (a.is_verified !== b.is_verified) return Number(b.is_verified) - Number(a.is_verified);
+    // Shorter USDA descriptions are the simpler/base form ("Beets, raw" beats
+    // "Babyfood, vegetables, beets, strained") — surface them first.
+    if (a.name.length !== b.name.length) return a.name.length - b.name.length;
     return a.name.localeCompare(b.name);
   });
 
@@ -178,12 +201,36 @@ function mapProduct(product: OpenFoodFactsProduct) {
   };
 }
 
-function mappedToFoodRows(mapped: FoodInsert[], query: string, limit: number): FoodRow[] {
-  const rows = mapped.map((item, idx) => ({
+function toFoodRows(mapped: FoodInsert[]): FoodRow[] {
+  return mapped.map((item, idx) => ({
     id: `external-${item.barcode ?? idx}`,
     ...item,
   })) as FoodRow[];
-  return rankAndDedupeFoods(rows, query, limit);
+}
+
+function mappedToFoodRows(mapped: FoodInsert[], query: string, limit: number): FoodRow[] {
+  return rankAndDedupeFoods(toFoodRows(mapped), query, limit);
+}
+
+/** Adapt USDA generic whole-food results (per-100g) to search FoodRows. */
+function usdaToFoodRows(foods: ResolvedFood[]): FoodRow[] {
+  return foods.map((f, idx) => ({
+    id: `usda-${idx}-${normalizeSearchText(f.name).replace(/\s+/g, "-")}`,
+    name: f.name,
+    brand: null,
+    barcode: null,
+    serving_size_g: f.serving_size_g,
+    serving_label: f.serving_label,
+    calories_per_serving: f.calories_per_serving,
+    protein_g: f.protein_g,
+    carbs_g: f.carbs_g,
+    fat_g: f.fat_g,
+    fiber_g: null,
+    sugar_g: null,
+    sodium_mg: null,
+    source: "usda",
+    is_verified: true,
+  }));
 }
 
 async function searchProducts(term: string, pageSize = 35): Promise<OpenFoodFactsProduct[]> {
@@ -313,33 +360,42 @@ Deno.serve(async (req: Request) => {
 
     await recordSearchTerm(service, query);
 
-    let items = await queryLocalFoods(service, query, limit);
-    if (items.length < 12) {
-      const products = await searchProducts(query, 35);
-      if (products.length > 0) {
-        const inserts: FoodInsert[] = products
-          .map(mapProduct)
-          .filter((item): item is FoodInsert => !!item);
-        if (inserts.length > 0) {
-          const { error: upsertError } = await service
-            .from("foods")
-            .upsert(inserts, { onConflict: "barcode", ignoreDuplicates: false });
-          if (upsertError) {
-            console.error("search upsert failed", upsertError.message);
-            const merged = rankAndDedupeFoods([...items, ...mappedToFoodRows(inserts, query, limit)], query, limit);
-            return new Response(JSON.stringify({ items: merged }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
+    // USDA generic whole foods run on EVERY search, in parallel with the local
+    // cache — NOT gated behind the "few results" check below. Otherwise a cache
+    // full of branded products would keep the local count high and suppress the
+    // generic whole food we specifically want ranked first.
+    const [local, usdaResolved] = await Promise.all([
+      queryLocalFoods(service, query, limit),
+      searchUsdaFoods(query, 8).catch(() => [] as ResolvedFood[]),
+    ]);
+    const usda = usdaToFoodRows(usdaResolved);
 
+    let pool: FoodRow[] = [...usda, ...local];
+
+    // Top up with Open Food Facts (branded / packaged) when hits are thin.
+    if (local.length + usda.length < 12) {
+      const products = await searchProducts(query, 35);
+      const inserts: FoodInsert[] = products
+        .map(mapProduct)
+        .filter((item): item is FoodInsert => !!item);
+      if (inserts.length > 0) {
+        const { error: upsertError } = await service
+          .from("foods")
+          .upsert(inserts, { onConflict: "barcode", ignoreDuplicates: false });
+        if (upsertError) {
+          console.error("search upsert failed", upsertError.message);
+          pool = [...usda, ...local, ...toFoodRows(inserts)];
+        } else {
           const refreshed = await queryLocalFoods(service, query, limit);
-          // If DB refresh still returns empty (edge case), still show external results.
-          items = refreshed.length > 0
-            ? refreshed
-            : rankAndDedupeFoods([...items, ...mappedToFoodRows(inserts, query, limit)], query, limit);
+          // If the DB refresh comes back empty (edge case), still show externals.
+          pool = refreshed.length > 0
+            ? [...usda, ...refreshed]
+            : [...usda, ...local, ...toFoodRows(inserts)];
         }
       }
     }
+
+    const items = rankAndDedupeFoods(pool, query, limit);
 
     return new Response(JSON.stringify({ items }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
