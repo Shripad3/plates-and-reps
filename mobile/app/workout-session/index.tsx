@@ -27,7 +27,6 @@ import { isOnline } from "@/lib/network";
 import { useOfflineStore } from "@/stores/offlineStore";
 import type { Exercise, WorkoutSession } from "@/types";
 import { useScreenRefresh } from "@/hooks/useScreenRefresh";
-import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { AppTextInput } from "@/components/AppTextInput";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { FinishWorkoutModal } from "@/components/FinishWorkoutModal";
@@ -133,7 +132,6 @@ export default function WorkoutSessionScreen() {
   const deleteSessionRef = useRef(deleteSession.mutate);
   deleteSessionRef.current = deleteSession.mutate;
   const insets = useSafeAreaInsets();
-  const { keyboardHeight } = useKeyboardInset(!showExercisePicker);
 
   const scrollBottomPadding = Math.max(insets.bottom, 16) + ADD_EXERCISE_FOOTER_HEIGHT;
 
@@ -417,6 +415,14 @@ export default function WorkoutSessionScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[400]} />
         }
+        ListFooterComponent={
+          <TouchableOpacity
+            className="border-2 border-dashed border-surface-elevated rounded-2xl py-4 items-center mt-2"
+            onPress={() => setShowExercisePicker(true)}
+          >
+            <Text className="text-brand-400 font-medium">+ Add Exercise</Text>
+          </TouchableOpacity>
+        }
         renderItem={({ item: block, drag, isActive, getIndex }: RenderItemParams<ActiveExerciseBlock>) => {
           const exIdx = getIndex() ?? 0;
           return (
@@ -480,16 +486,6 @@ export default function WorkoutSessionScreen() {
         }}
       />
 
-      {keyboardHeight === 0 && (
-        <View className="px-5" style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
-          <TouchableOpacity
-            className="border-2 border-dashed border-surface-elevated rounded-2xl py-4 items-center"
-            onPress={() => setShowExercisePicker(true)}
-          >
-            <Text className="text-brand-400 font-medium">+ Add Exercise</Text>
-          </TouchableOpacity>
-        </View>
-      )}
       </View>
 
       <FinishWorkoutModal
