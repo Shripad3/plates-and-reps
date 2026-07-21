@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from "react-na
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import * as ImagePicker from "expo-image-picker";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { Audio } from "expo-av";
 import { router } from "expo-router";
 import { analyzeFoodPhoto, transcribeVoiceLog } from "@/lib/api";
@@ -119,15 +120,25 @@ export function AiFoodLogActions({ date }: AiFoodLogActionsProps) {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        base64: true,
-        quality: 0.65,
+        quality: 1,
         allowsEditing: false,
       });
 
-      if (result.canceled || !result.assets[0]?.base64) return;
+      if (result.canceled || !result.assets[0]?.uri) return;
 
-      const asset = result.assets[0];
-      const items = await analyzeFoodPhoto(asset.base64!, asset.mimeType ?? "image/jpeg");
+      // Re-encode to JPEG before sending. iPhone cameras in High Efficiency
+      // mode capture HEIC, which the vision model and our server-side validator
+      // reject — ImagePicker forwards that as image/heic and the photo log
+      // fails ("image_url must be a base64-encoded image").
+      const rendered = await ImageManipulator.manipulate(result.assets[0].uri).renderAsync();
+      const jpeg = await rendered.saveAsync({
+        compress: 0.65,
+        format: SaveFormat.JPEG,
+        base64: true,
+      });
+      if (!jpeg.base64) return;
+
+      const items = await analyzeFoodPhoto(jpeg.base64, "image/jpeg");
       if (items.length === 0) {
         Alert.alert("No food found", "Could not identify food in that photo. Try again with better lighting.");
         return;
