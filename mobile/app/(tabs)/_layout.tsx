@@ -2,7 +2,7 @@ import { Tabs, Redirect, router } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuthStore } from "@/stores/authStore";
@@ -25,8 +25,14 @@ export default function TabsLayout() {
   useOfflineSync();
   const isMainTab = useIsMainTab();
 
+  // Launch the first-run tour at most once per app run. TOUR_SEEN_KEY is only
+  // written when the tour finishes, so without this guard the several auth
+  // events fired on a fresh sign-up (each changing `session`) would each push
+  // another /tour onto the stack — replaying it 2-3 times.
+  const tourChecked = useRef(false);
   useEffect(() => {
-    if (!session) return;
+    if (!session || tourChecked.current) return;
+    tourChecked.current = true;
     AsyncStorage.getItem(TOUR_SEEN_KEY).then((seen) => {
       if (!seen) router.push("/tour");
     });
@@ -75,13 +81,9 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="home/index" />
       <Tabs.Screen name="nutrition" />
-      <Tabs.Screen name="workouts/index" />
+      <Tabs.Screen name="workouts" />
       <Tabs.Screen name="social/index" />
       <Tabs.Screen name="progress/index" />
-      <Tabs.Screen name="workouts/templates" options={{ href: null }} />
-      <Tabs.Screen name="workouts/template-detail" options={{ href: null }} />
-      <Tabs.Screen name="workouts/create-template" options={{ href: null }} />
-      <Tabs.Screen name="workouts/session-detail" options={{ href: null }} />
       <Tabs.Screen name="profile/index" options={{ href: null }} />
     </Tabs>
     </View>

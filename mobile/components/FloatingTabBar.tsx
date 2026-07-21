@@ -14,7 +14,7 @@ type IoniconsName = ComponentProps<typeof Ionicons>["name"];
 const TAB_META: Record<string, { icon: IoniconsName; iconFocused: IoniconsName; label: string }> = {
   "home/index":      { icon: "home-outline",       iconFocused: "home",        label: "Home"   },
   "nutrition":       { icon: "nutrition-outline",   iconFocused: "nutrition",   label: "Food"   },
-  "workouts/index":  { icon: "barbell-outline",     iconFocused: "barbell",     label: "Train"  },
+  "workouts":        { icon: "barbell-outline",     iconFocused: "barbell",     label: "Train"  },
   "social/index":    { icon: "people-outline",      iconFocused: "people",      label: "Social" },
   "progress/index":  { icon: "trending-up-outline", iconFocused: "trending-up", label: "Stats"  },
 };

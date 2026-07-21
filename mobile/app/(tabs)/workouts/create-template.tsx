@@ -19,7 +19,6 @@ import type { Exercise } from "@/types";
 import { getExercisesByIds } from "@/lib/api";
 import { useScreenRefresh } from "@/hooks/useScreenRefresh";
 import { useTabBarScrollPadding } from "@/hooks/useTabBarScrollPadding";
-import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { AppTextInput } from "@/components/AppTextInput";
 import { ExercisePicker } from "@/components/ExercisePicker";
@@ -45,7 +44,6 @@ export default function CreateTemplateScreen() {
   const [exerciseQuery, setExerciseQuery] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const tabBarPadding = useTabBarScrollPadding();
-  const { keyboardHeight } = useKeyboardInset(!showPicker);
 
   const refreshKeys = useMemo(() => [["exercises"]] as const, []);
   const { refreshing, onRefresh } = useScreenRefresh([...refreshKeys]);
@@ -221,6 +219,14 @@ export default function CreateTemplateScreen() {
                 No exercises yet. Tap “Add Exercise” below to start.
               </Text>
             }
+            ListFooterComponent={
+              <TouchableOpacity
+                className="border-2 border-dashed border-surface-elevated rounded-2xl py-4 items-center mt-2"
+                onPress={() => setShowPicker(true)}
+              >
+                <Text className="text-brand-400 font-medium">+ Add Exercise</Text>
+              </TouchableOpacity>
+            }
             renderItem={({ item, drag, isActive }: RenderItemParams<TemplateExercise>) => {
               const exId = item.exercise.id;
               return (
@@ -295,16 +301,6 @@ export default function CreateTemplateScreen() {
             }}
           />
 
-          {keyboardHeight === 0 && (
-            <View className="px-5" style={{ paddingBottom: tabBarPadding }}>
-              <TouchableOpacity
-                className="border-2 border-dashed border-surface-elevated rounded-2xl py-4 items-center"
-                onPress={() => setShowPicker(true)}
-              >
-                <Text className="text-brand-400 font-medium">+ Add Exercise</Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
 
         <ExercisePicker

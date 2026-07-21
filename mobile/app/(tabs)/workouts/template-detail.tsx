@@ -11,11 +11,19 @@ import { SwipeBackGesture } from "@/components/SwipeBackGesture";
 import { Button } from "@/components/ui/Button";
 import { TemplateExercisesSkeleton } from "@/components/skeletons/WorkoutDetailSkeleton";
 
+// Module-scoped latch. Returning from a child route in this stack remounts this
+// screen with its `templateId` param already cleared; a component-level ref
+// can't survive a remount, but a module-level value does. Holds the last routine
+// the user opened so a wiped param can't cause a false "Routine not found".
+let lastTemplateId: string | undefined;
+
 export default function TemplateDetailScreen() {
-  const { templateId } = useLocalSearchParams<{ templateId?: string }>();
+  const params = useLocalSearchParams<{ templateId?: string }>();
+  if (params.templateId) lastTemplateId = params.templateId;
+  const templateId = params.templateId ?? lastTemplateId;
   const insets = useSafeAreaInsets();
 
-  const { data: templates = [] } = useWorkoutTemplates();
+  const { data: templates = [], isLoading: templatesLoading } = useWorkoutTemplates();
   const template = templates.find((t) => t.id === templateId);
 
   const exerciseIds = useMemo(
@@ -56,7 +64,9 @@ export default function TemplateDetailScreen() {
         <SafeAreaView className="flex-1 bg-surface">
           <ScreenHeader title="Routine" />
           <View className="flex-1 items-center justify-center px-8">
-            <Text className="text-slate-400 text-center">Routine not found.</Text>
+            <Text className="text-slate-400 text-center">
+              {templatesLoading ? "Loading…" : "Routine not found."}
+            </Text>
           </View>
         </SafeAreaView>
       </SwipeBackGesture>
@@ -115,8 +125,17 @@ export default function TemplateDetailScreen() {
 
         <View
           className="px-5 pt-2 border-t border-surface-border"
-          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+          style={{ paddingBottom: Math.max(insets.bottom, 16), gap: 8 }}
         >
+          <Button
+            label="Analyze this routine"
+            variant="ghost"
+            fullWidth
+            onPress={() => {
+              if (!templateId) return;
+              router.push({ pathname: "/(tabs)/workouts/analysis", params: { routineId: templateId } });
+            }}
+          />
           <Button label="Start workout" fullWidth onPress={startWorkout} />
         </View>
       </SafeAreaView>
