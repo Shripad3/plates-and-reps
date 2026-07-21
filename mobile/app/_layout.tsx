@@ -121,7 +121,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           {/* Content pages — pushed as cards so they route/back like real pages. */}
           <Stack.Screen name="chat/index" options={{ headerShown: false }} />
-          <Stack.Screen name="ai-plan/index" options={{ headerShown: false }} />
           <Stack.Screen name="meal-plan/index" options={{ headerShown: false }} />
           {/* Live workout stays full-screen so a stray swipe can't drop you mid-session. */}
           <Stack.Screen

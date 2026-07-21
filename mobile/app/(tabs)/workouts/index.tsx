@@ -92,13 +92,13 @@ export default function WorkoutsScreen() {
           <TouchableOpacity
             style={{ borderRadius: 16 }}
             className="bg-surface-card border border-brand-500/40 p-4 flex-row items-center justify-between"
-            onPress={() => router.push("/ai-plan")}
+            onPress={() => router.push("/(tabs)/workouts/analyze-picker" as Href)}
             activeOpacity={0.85}
           >
             <View className="flex-1 mr-3">
-              <Text className="text-white text-base font-bold">Generate an AI plan</Text>
+              <Text className="text-white text-base font-bold">Analyze a routine</Text>
               <Text className="text-slate-400 text-sm mt-0.5">
-                A personalized multi-week program built around your goal.
+                Get a scored breakdown of any routine — coverage, balance, and how to improve it.
               </Text>
             </View>
             <View className="w-10 h-10 rounded-xl bg-brand-500/15 items-center justify-center">

@@ -9,6 +9,8 @@ import { Card, Section, SectionTitle } from "@/components/ui/Card";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BodyMap } from "@/components/BodyMap";
+import { useQuery } from "@tanstack/react-query";
+import { getProfile } from "@/lib/api";
 import { colors } from "@/lib/theme";
 import { analyzeWorkoutTemplate, type AnalysisReport } from "@/lib/workoutAnalysis";
 
@@ -105,6 +107,10 @@ function Report({ report }: { report: AnalysisReport }) {
   const { analysis: a, narration: n, workoutName } = report;
   const s = a.subScores;
   const maxVol = Math.max(1, ...a.coverage.trained.map((m) => a.muscleVolume[m] ?? 0));
+  // Show a body silhouette matching the user's sex (defaults to male for
+  // other/prefer-not-to-say/unset).
+  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: getProfile });
+  const bodySex = profile?.sex === "female" ? "female" : "male";
 
   return (
     <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -148,7 +154,7 @@ function Report({ report }: { report: AnalysisReport }) {
       <Section className="mt-6">
         <SectionTitle>Muscle coverage</SectionTitle>
         <Card>
-          <BodyMap intensity={a.bodyMapIntensity} />
+          <BodyMap intensity={a.bodyMapIntensity} sex={bodySex} />
           {a.coverage.missing.length > 0 && (
             <Text className="text-slate-400 text-sm mt-3 text-center">
               Not trained: {a.coverage.missing.map(label).join(", ")}

@@ -10,6 +10,7 @@ export default function WorkoutsLayout() {
       <Stack.Screen name="create-template" />
       <Stack.Screen name="session-detail" />
       <Stack.Screen name="analysis" />
+      <Stack.Screen name="analyze-picker" />
     </Stack>
   );
 }
