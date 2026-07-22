@@ -14,7 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors } from "@/lib/theme";
 
-export const TOUR_SEEN_KEY = "app_tour_seen_v1";
+// Bump the version whenever the tour content changes so returning users see
+// the refreshed tour once (v2 adds the workout-analysis + AI meal-plan slides).
+export const TOUR_SEEN_KEY = "app_tour_seen_v2";
 
 type Slide = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -30,28 +32,35 @@ const SLIDES: Slide[] = [
     iconBg: colors.brand[500],
     badge: null,
     title: "Welcome to Plates & Reps",
-    body: "Your all-in-one fitness companion. Track food, log workouts, and get personalised coaching — all in one place.",
+    body: "Your all-in-one fitness companion. Track food, log workouts, and get AI-powered coaching — all in one place.",
   },
   {
     icon: "restaurant",
     iconBg: "#3B82C4",
     badge: "Food tab",
     title: "Track every meal",
-    body: "Log food by searching, scanning a barcode, or snapping a photo. Hit your daily calorie and macro targets with ease.",
+    body: "Log food by searching, scanning a barcode, snapping a photo, or by voice — then get an AI meal plan built around your calorie and macro targets.",
   },
   {
     icon: "barbell-outline",
     iconBg: colors.brand[600] ?? colors.brand[500],
     badge: "Train tab",
-    title: "Build your routine",
-    body: "Create workout templates, log your sets and reps, and track your strength over time. Rest timers run automatically.",
+    title: "Build your routines",
+    body: "Create workout routines and log your sets and reps, with rest timers running automatically. Your strength history is always a tap away.",
+  },
+  {
+    icon: "body-outline",
+    iconBg: "#0EA5E9",
+    badge: "New",
+    title: "Get your workouts analyzed",
+    body: "Pick any routine and let AI score it — a muscle-coverage body map, balance and volume breakdown, and clear tips to make it better.",
   },
   {
     icon: "chatbubble-ellipses",
     iconBg: "#7C3AED",
     badge: "AI Coach",
     title: "Ask your coach anything",
-    body: "Your coach knows your goals, nutrition, and workout history. Ask it to log food, check your macros, or plan your next session.",
+    body: "Your coach knows your goals, nutrition, routines, and workout history. Ask it to log food, check your macros, or get advice any time.",
   },
   {
     icon: "trending-up",
