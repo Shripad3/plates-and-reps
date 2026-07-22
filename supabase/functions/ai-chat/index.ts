@@ -52,7 +52,7 @@ const tools: OpenAITool[] = [
     type: "function",
     function: {
       name: "get_nutrition_summary",
-      description: "Get the user's calorie and macro totals for a specific date (defaults to today).",
+      description: "Get the user's logged foods for a date (defaults to today): returns the list of items eaten (name, meal, macros) AND the calorie/macro totals. Use this to answer what/which foods the user ate as well as their totals.",
       parameters: {
         type: "object",
         properties: { date: { type: "string", description: "YYYY-MM-DD, defaults to today" } },
@@ -84,11 +84,19 @@ const tools: OpenAITool[] = [
     type: "function",
     function: {
       name: "get_workout_history",
-      description: "Get the user's recent workout sessions.",
+      description: "Get the user's recent COMPLETED workout sessions (what they actually trained).",
       parameters: {
         type: "object",
         properties: { days: { type: ["number", "string"], description: "Days to look back, default 7" } },
       },
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_workout_routines",
+      description: "Get the user's saved workout routines/templates (their planned workouts) — each routine's name and the exercises in it.",
+      parameters: { type: "object", properties: {} },
     }
   },
   {
@@ -212,19 +220,31 @@ async function executeTool(
       const date = (safeArgs.date as string) ?? today;
       const { data: logs } = await supabase
         .from("nutrition_logs")
-        .select("calories, protein_g, carbs_g, fat_g")
+        .select("food_name, meal_type, calories, protein_g, carbs_g, fat_g")
         .eq("user_id", userId)
-        .eq("date", date);
-      const totals = (logs ?? []).reduce(
-        (acc: Record<string, number>, l: Record<string, number>) => ({
-          calories: acc.calories + l.calories,
-          protein_g: acc.protein_g + l.protein_g,
-          carbs_g: acc.carbs_g + l.carbs_g,
-          fat_g: acc.fat_g + l.fat_g,
+        .eq("date", date)
+        .order("created_at", { ascending: true });
+      const rows = (logs ?? []) as Record<string, number | string>[];
+      const totals = rows.reduce(
+        (acc: Record<string, number>, l) => ({
+          calories: acc.calories + toNumber(l.calories),
+          protein_g: acc.protein_g + toNumber(l.protein_g),
+          carbs_g: acc.carbs_g + toNumber(l.carbs_g),
+          fat_g: acc.fat_g + toNumber(l.fat_g),
         }),
         { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
       );
-      return { date, ...totals, log_count: (logs ?? []).length };
+      // Include the actual items so the model can LIST what was eaten (with real
+      // names) instead of inventing dishes.
+      const items = rows.map((l) => ({
+        name: l.food_name,
+        meal: l.meal_type,
+        calories: Math.round(toNumber(l.calories)),
+        protein_g: toNumber(l.protein_g),
+        carbs_g: toNumber(l.carbs_g),
+        fat_g: toNumber(l.fat_g),
+      }));
+      return { date, ...totals, log_count: items.length, items };
     }
     case "log_food": {
       const date = (safeArgs.date as string) ?? today;
@@ -263,6 +283,25 @@ async function executeTool(
         .gte("started_at", since.toISOString())
         .order("started_at", { ascending: false });
       return { sessions: sessions ?? [] };
+    }
+    case "get_workout_routines": {
+      const { data: templates } = await supabase
+        .from("workout_templates")
+        .select("name, description, exercises")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false });
+      const routines = (templates ?? []).map((t: Record<string, unknown>) => {
+        const exs = Array.isArray(t.exercises) ? (t.exercises as Record<string, unknown>[]) : [];
+        return {
+          name: t.name,
+          description: t.description ?? null,
+          exercise_count: exs.length,
+          exercises: exs
+            .map((e) => (e?.exercise as { name?: string } | undefined)?.name)
+            .filter(Boolean),
+        };
+      });
+      return { routines };
     }
     case "get_user_goals": {
       const { data: goal } = await supabase
@@ -527,7 +566,7 @@ async function executeTool(
 
 async function loadUserContext(userId: string, supabase: ReturnType<typeof createClient>): Promise<string> {
   const today = new Date().toISOString().split("T")[0];
-  const [{ data: profile }, { data: goal }, { data: todayLogs }, { data: streaks }, { data: latestMetric }] =
+  const [{ data: profile }, { data: goal }, { data: todayLogs }, { data: streaks }, { data: latestMetric }, { data: templates }] =
     await Promise.all([
       supabase.from("user_profiles").select("display_name, height_cm, sex, activity_level").eq("id", userId).single(),
       supabase.from("user_goals").select("*").eq("user_id", userId).eq("is_active", true).single(),
@@ -541,6 +580,12 @@ async function loadUserContext(userId: string, supabase: ReturnType<typeof creat
         .order("date", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from("workout_templates")
+        .select("name, exercises")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(15),
     ]);
   const totals = (todayLogs ?? []).reduce(
     (acc: Record<string, number>, l: Record<string, number>) => ({
@@ -555,7 +600,14 @@ async function loadUserContext(userId: string, supabase: ReturnType<typeof creat
     latestMetric?.weight_kg != null
       ? `${latestMetric.weight_kg} kg (${latestMetric.date})`
       : "not logged";
-  return `## User\nName: ${profile?.display_name ?? "User"} | Height: ${profile?.height_cm ?? "?"}cm | Activity: ${profile?.activity_level ?? "?"}\n\n## Goals (targets to reach)\nType: ${goal?.goal_type ?? "not set"} | Goal weight: ${goal?.target_weight_kg ?? "?"} kg | Calories: ${goal?.target_calories ?? "?"} kcal | Protein: ${goal?.target_protein_g ?? "?"}g\n\n## Current weight (latest weigh-in)\n${currentWeight}\n\n## Today (${today})\nCalories logged: ${Math.round(totals.calories)} / ${goal?.target_calories ?? "?"} | Protein: ${Math.round(totals.protein_g)}g\n\n## Streak\nLogging: ${loggingStreak} days`;
+  const routineList =
+    (templates ?? [])
+      .map((t: Record<string, unknown>) => {
+        const n = Array.isArray(t.exercises) ? (t.exercises as unknown[]).length : 0;
+        return `${t.name} (${n} exercises)`;
+      })
+      .join(", ") || "none yet";
+  return `## User\nName: ${profile?.display_name ?? "User"} | Height: ${profile?.height_cm ?? "?"}cm | Activity: ${profile?.activity_level ?? "?"}\n\n## Goals (targets to reach)\nType: ${goal?.goal_type ?? "not set"} | Goal weight: ${goal?.target_weight_kg ?? "?"} kg | Calories: ${goal?.target_calories ?? "?"} kcal | Protein: ${goal?.target_protein_g ?? "?"}g\n\n## Current weight (latest weigh-in)\n${currentWeight}\n\n## Today (${today})\nCalories logged: ${Math.round(totals.calories)} / ${goal?.target_calories ?? "?"} | Protein: ${Math.round(totals.protein_g)}g\n\n## Saved routines\n${routineList}\n\n## Streak\nLogging: ${loggingStreak} days`;
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
@@ -621,7 +673,7 @@ Deno.serve(async (req: Request) => {
         .limit(20),
     ]);
 
-    const systemPrompt = `You are a personal fitness coach inside Plates & Reps. You have full access to the user's data and can take actions on their behalf.\n\n${userContext}\n\n## Weight rules (IMPORTANT)\n- **Goal weight** (target they want to reach): use update_goal with target_weight_kg. Phrases: "goal weight", "target weight", "weight goal", "want to weigh X".\n- **Current weight** (today's weigh-in on Progress): use log_body_metric with weight_kg. Phrases: "I weigh X", "log my weight", "weighed myself".\n- Never use log_body_metric when the user wants to change their goal/target weight.\n\n## Profile rules\n- **Height**: use update_profile with height_cm (centimeters). Phrases: "change my height", "I'm 180 cm tall", "update height to X".\n- **Activity level**: use update_profile with activity_level.\n- Height and activity changes automatically recalculate calorie/macro targets.\n\nBe concise, warm, and motivating. Confirm actions you take. Use metric units.`;
+    const systemPrompt = `You are a personal fitness coach inside Plates & Reps. You have full access to the user's data and can take actions on their behalf.\n\n${userContext}\n\n## Weight rules (IMPORTANT)\n- **Goal weight** (target they want to reach): use update_goal with target_weight_kg. Phrases: "goal weight", "target weight", "weight goal", "want to weigh X".\n- **Current weight** (today's weigh-in on Progress): use log_body_metric with weight_kg. Phrases: "I weigh X", "log my weight", "weighed myself".\n- Never use log_body_metric when the user wants to change their goal/target weight.\n\n## Profile rules\n- **Height**: use update_profile with height_cm (centimeters). Phrases: "change my height", "I'm 180 cm tall", "update height to X".\n- **Activity level**: use update_profile with activity_level.\n- Height and activity changes automatically recalculate calorie/macro targets.\n\n## Nutrition rules\n- To answer what/which foods the user ate (or their totals for a day), call get_nutrition_summary — it returns the LIST of logged items with their real names, meals and macros, plus the totals. List the actual item names. NEVER invent, guess, or make up food names.\n- Only call log_food when the user EXPLICITLY asks to log or add a food. NEVER call log_food to answer a question about what they already ate.\n\n## Workout rules\n- "Routines" (saved templates, listed above) are PLANNED workouts; "sessions"/"history" are COMPLETED workouts. Don't confuse them. Use get_workout_routines for a routine's exercises and get_workout_history for completed sessions.\n\nBe concise, warm, and motivating. Confirm actions you take. Use metric units.`;
 
     await supabase.from("chat_messages").insert({ conversation_id, role: "user", content: message });
 
@@ -637,9 +689,6 @@ Deno.serve(async (req: Request) => {
 
     let finalText = "";
     const actionSummaries: string[] = [];
-    let nutritionSummary: {
-      calories: number; protein_g: number; carbs_g: number; fat_g: number; log_count: number;
-    } | null = null;
     for (let i = 0; i < 6; i++) {
       const groqRes = await fetch(GROQ_URL, {
         method: "POST",
@@ -693,20 +742,6 @@ Deno.serve(async (req: Request) => {
           : await executeTool(call.function.name, args, user.id, supabase);
 
         if (
-          call.function.name === "get_nutrition_summary" &&
-          result && typeof result === "object" && !("error" in result)
-        ) {
-          const r = result as { calories?: number; protein_g?: number; carbs_g?: number; fat_g?: number; log_count?: number };
-          nutritionSummary = {
-            calories:   Math.round(toNumber(r.calories)),
-            protein_g:  Math.round(toNumber(r.protein_g)),
-            carbs_g:    Math.round(toNumber(r.carbs_g)),
-            fat_g:      Math.round(toNumber(r.fat_g)),
-            log_count:  Math.round(toNumber(r.log_count)),
-          };
-        }
-
-        if (
           result &&
           typeof result === "object" &&
           "success" in result &&
@@ -749,12 +784,6 @@ Deno.serve(async (req: Request) => {
           if (!word) continue;
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: word } }] })}\n\n`)
-          );
-        }
-        // Structured nutrition frame — clients scan for this before [DONE]
-        if (nutritionSummary) {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ nutrition_summary: nutritionSummary })}\n\n`)
           );
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
