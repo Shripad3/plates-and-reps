@@ -13,8 +13,8 @@ export default function TermsScreen() {
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
           <Text className="text-white font-semibold">Health &amp; nutrition disclaimer{"\n"}</Text>
-          {APP_NAME} provides fitness tracking, {APP_AI_NAME} coaching, and AI-generated workout and
-          meal plans. All of this is general information, not medical, dietary, or medical-nutrition
+          {APP_NAME} provides fitness tracking, {APP_AI_NAME} coaching, AI meal plans, and AI workout
+          analysis. All of this is general information, not medical, dietary, or medical-nutrition
           advice. AI-generated content may be inaccurate or incomplete. Calorie and nutrition values,
           and any allergen or dietary filtering, are best-effort estimates and are not guaranteed — do
           not rely on them if you have a food allergy, intolerance, or medical condition. Always verify

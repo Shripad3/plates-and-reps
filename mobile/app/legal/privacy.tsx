@@ -27,18 +27,18 @@ export default function PrivacyPolicyScreen() {
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
           <Text className="text-white font-semibold">AI features &amp; Groq{"\n"}</Text>
-          {APP_AI_NAME} (the coach, AI food logging, and AI-generated workout and meal plans) is
+          {APP_AI_NAME} (the coach, AI food logging, AI meal plans, and workout analysis) is
           powered by Groq, Inc. When you use the coach, we send Groq your display name, height,
           activity level, goals and target macros, your nutrition totals and logged foods, your
           workout and cardio history, your logged body weight, and the messages you type. Food photos
           and voice recordings for AI food logging are also processed through Groq. When you generate
-          an AI plan we additionally send Groq the inputs for that plan: for workout plans, your goal,
-          experience level, available equipment, and any injuries or weak points you provide; for meal
+          a meal plan or run a workout analysis we additionally send Groq the relevant inputs: for meal
           plans, your calorie target, dietary pattern, food dislikes, cuisine preferences, and any
-          allergies or intolerances you provide. Allergy and injury information is health-related; you
-          choose whether to provide it. We ask for your consent before AI features are used for the
-          first time, and you can decline. Groq processes this data to generate a response and does not
-          use it to train its models.
+          allergies or intolerances you provide; for workout analysis, the routine you select, your
+          recent training history, and any injuries you provide. Allergy and injury information is
+          health-related; you choose whether to provide it. We ask for your consent before AI features
+          are used for the first time, and you can decline. Groq processes this data to generate a
+          response and does not use it to train its models.
         </Text>
         <Text className="text-slate-300 text-sm leading-6 mb-4">
           <Text className="text-white font-semibold">Third parties{"\n"}</Text>
