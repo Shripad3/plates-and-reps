@@ -113,7 +113,30 @@ Deno.serve(async (req: Request) => {
     const templateId = typeof body.template_id === "string" ? body.template_id : "";
     if (!templateId) return json({ error: "template_id is required" }, 400);
 
+    // Load the selected workout (RLS bypass via service; verify ownership).
+    const { data: template } = await admin
+      .from("workout_templates")
+      .select("id, user_id, name, exercises")
+      .eq("id", templateId)
+      .single();
+    if (!template || template.user_id !== user.id) return json({ error: "Workout not found" }, 404);
+
+    const templateExercises = (Array.isArray(template.exercises) ? template.exercises : []) as TemplateExerciseRow[];
+    const parsed = templateExercises
+      .map((te) => ({
+        exercise_id: String(te.exercise_id),
+        sets: Array.isArray(te.sets) ? te.sets.length : 0,
+        target_reps: Array.isArray(te.sets) && te.sets[0]?.target_reps != null ? Number(te.sets[0].target_reps) : null,
+      }))
+      .filter((te) => te.exercise_id && te.sets > 0);
+
+    if (parsed.length === 0) return json({ error: "This workout has no exercises to analyse." }, 422);
+
+    const exerciseIds = [...new Set(parsed.map((p) => p.exercise_id))];
+
     // Entitlement: premium = high monthly safety ceiling; free = small monthly allowance.
+    // Resolved only after the workout is known valid & owned, so a 404/422 request
+    // doesn't consume the user's monthly analysis allowance.
     const { data: profile } = await admin
       .from("user_profiles")
       .select("is_premium, premium_until, injury_info")
@@ -137,27 +160,6 @@ Deno.serve(async (req: Request) => {
         isPremium ? 429 : 402,
       );
     }
-
-    // Load the selected workout (RLS bypass via service; verify ownership).
-    const { data: template } = await admin
-      .from("workout_templates")
-      .select("id, user_id, name, exercises")
-      .eq("id", templateId)
-      .single();
-    if (!template || template.user_id !== user.id) return json({ error: "Workout not found" }, 404);
-
-    const templateExercises = (Array.isArray(template.exercises) ? template.exercises : []) as TemplateExerciseRow[];
-    const parsed = templateExercises
-      .map((te) => ({
-        exercise_id: String(te.exercise_id),
-        sets: Array.isArray(te.sets) ? te.sets.length : 0,
-        target_reps: Array.isArray(te.sets) && te.sets[0]?.target_reps != null ? Number(te.sets[0].target_reps) : null,
-      }))
-      .filter((te) => te.exercise_id && te.sets > 0);
-
-    if (parsed.length === 0) return json({ error: "This workout has no exercises to analyse." }, 422);
-
-    const exerciseIds = [...new Set(parsed.map((p) => p.exercise_id))];
 
     // Exercise metadata (muscle groups etc.)
     const { data: meta } = await admin
