@@ -65,6 +65,14 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const { image_url } = body;
+
+    const urlError = validateImageUrl(image_url);
+    if (urlError) return respond400(urlError);
+
+    // Consume usage only after the request is known-valid, so a malformed
+    // image_url (400) doesn't burn one of the user's daily analysis slots.
     const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const limitError = await assertPhotoAnalysisAllowed(admin, user.id);
     if (limitError) {
@@ -73,12 +81,6 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const body = await req.json().catch(() => ({}));
-    const { image_url } = body;
-
-    const urlError = validateImageUrl(image_url);
-    if (urlError) return respond400(urlError);
 
     let dataUrl: string;
     if ((image_url as string).startsWith("data:")) {

@@ -86,15 +86,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const limitError = await assertVoiceLogAllowed(admin, user.id);
-    if (limitError) {
-      return new Response(JSON.stringify({ error: limitError, code: "LIMIT_REACHED" }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const formData = await req.formData();
     const audioFile = formData.get("audio") as File | null;
 
@@ -110,6 +101,17 @@ Deno.serve(async (req: Request) => {
     if (audioFile.size > MAX_AUDIO_BYTES) {
       return new Response(JSON.stringify({ error: "Audio file too large (max 25MB)" }), {
         status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Consume usage only after the request is known-valid, so a missing or
+    // oversized audio file doesn't burn one of the user's daily voice-log slots.
+    const admin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const limitError = await assertVoiceLogAllowed(admin, user.id);
+    if (limitError) {
+      return new Response(JSON.stringify({ error: limitError, code: "LIMIT_REACHED" }), {
+        status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

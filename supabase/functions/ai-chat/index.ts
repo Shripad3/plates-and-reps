@@ -4,6 +4,7 @@ import { respond500 } from "../_shared/validation.ts";
 import { calculateGoalTargets } from "../_shared/nutritionCalc.ts";
 import { assertChatAllowed } from "../_shared/usageLimits.ts";
 import { validateToolArgs } from "../_shared/toolValidation.ts";
+import { resolveLoggedFood } from "../_shared/foodResolve.ts";
 
 const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
 const GROQ_MODEL = Deno.env.get("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
@@ -248,13 +249,36 @@ async function executeTool(
     }
     case "log_food": {
       const date = (safeArgs.date as string) ?? today;
-      const calories = toNumber(safeArgs.calories);
-      const protein = toNumber(safeArgs.protein_g);
-      const carbs = toNumber(safeArgs.carbs_g);
-      const fat = toNumber(safeArgs.fat_g);
-      const servings = toNumber(safeArgs.servings, 1);
+      const rawServings = toNumber(safeArgs.servings, 1);
+      const servings = rawServings > 0 ? rawServings : 1;
+
+      // Deterministic-first: resolve the food to a DB row (local → USDA → OFF)
+      // and compute macros from the database. The model's numbers are used ONLY
+      // as a fallback for foods no database can resolve (composite/home dishes).
+      const round1 = (n: number) => Math.round(n * 10) / 10;
+      const resolved = await resolveLoggedFood(supabase, String(safeArgs.food_name ?? ""));
+
+      let foodId: string | null = null;
+      let calories: number;
+      let protein: number;
+      let carbs: number;
+      let fat: number;
+      if (resolved) {
+        foodId = resolved.food_id;
+        calories = Math.round(resolved.calories * servings);
+        protein = round1(resolved.protein_g * servings);
+        carbs = round1(resolved.carbs_g * servings);
+        fat = round1(resolved.fat_g * servings);
+      } else {
+        calories = toNumber(safeArgs.calories);
+        protein = toNumber(safeArgs.protein_g);
+        carbs = toNumber(safeArgs.carbs_g);
+        fat = toNumber(safeArgs.fat_g);
+      }
+
       const { error } = await supabase.from("nutrition_logs").insert({
         user_id: userId,
+        food_id: foodId,
         food_name: safeArgs.food_name,
         meal_type: safeArgs.meal_type,
         date,
